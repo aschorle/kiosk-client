@@ -59,6 +59,23 @@ Die Vorabprüfungen sind reine Leseoperationen. Sie bereiten spätere Installer-
 - CPU Architektur: prüft, ob die Architektur zu den unterstützten ARM-Zielplattformen passt.
 - Unterstütztes Board: erkennt Radxa Rock 4C+ oder Raspberry Pi 4 über Geräteinformationen, ohne Hardware-Konfiguration zu ändern.
 
+Grundinstallation auf einer Radxa Rock 4C+
+
+Die Grundinstallation für Radxa Rock 4C+ wird über `installer/install-radxa.sh` gestartet. Das Skript ist hardware-spezifisch und verwendet die gemeinsamen Funktionen aus `install-common.sh`, die Paketlisten aus `packages.sh` und die Vorabprüfungen aus `verify.sh`.
+
+Der Ablauf ist bewusst klein gehalten:
+
+- Root-Rechte prüfen.
+- Vorabprüfungen für Debian-Version, Netzwerk, Speicherplatz, CPU-Architektur und unterstütztes Board ausführen.
+- Board erkennen und sicherstellen, dass das Skript auf einer Radxa Rock 4C+ läuft.
+- Begrüßung und Zusammenfassung der Grundinstallation ausgeben.
+- Paketquellen mit `apt update` aktualisieren.
+- Vorhandene Pakete mit `apt full-upgrade -y` aktualisieren.
+- Ausschließlich die gemeinsamen Basispakete aus `COMMON_PACKAGES` installieren.
+- Erfolgsmeldung ausgeben.
+
+In diesem Schritt werden noch kein Chromium, kein Cage, keine Wayland-Konfiguration, keine systemd-Services, kein Kiosk-Agent und kein Webinterface installiert oder eingerichtet.
+
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 
 - Paketinstallation (als Hinweis):
