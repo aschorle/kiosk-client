@@ -36,3 +36,40 @@ Projektstruktur (Auszug)
 Erste Schritte
 
 Dies ist ein Dokumentations- und Platzhalter-Repository. Keine Produktionsskripte sind in dieser Phase enthalten. Siehe docs/ für Details zu Architektur, Installation und Hardware.
+
+Projektphasen
+
+Phase 1
+
+- Projektstruktur
+- Dokumentation
+
+Phase 2
+
+- Installer Framework
+
+Phase 3
+
+- Browser
+- Wayland
+- Cage
+
+Phase 4
+
+- systemd
+
+Phase 5
+
+- Kiosk Agent
+
+Phase 6
+
+- Weboberfläche
+
+Phase 7
+
+- Watchdog
+
+Phase 8
+
+- Raspberry Pi Support
