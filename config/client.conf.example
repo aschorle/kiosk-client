@@ -1,0 +1,13 @@
+# Beispiel-Konfigurationsdatei für kiosk-client
+
+# Die URL, die im Kiosk-Browser angezeigt wird
+URL=https://display.example.local
+
+# Eindeutige Gerätekennung
+DEVICE_ID=display01
+
+# Lokaler Web-UI-Port
+PORT=8080
+
+# Version des Clients
+VERSION=0.1.0

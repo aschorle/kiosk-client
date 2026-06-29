@@ -1,0 +1,17 @@
+# Build / editor
+.vscode/
+.DS_Store
+
+# Secrets
+config/*.secret
+*.env
+
+# Logs
+logs/
+*.log
+
+# OS
+Thumbs.db
+
+# Temporary
+tmp/
