@@ -48,6 +48,17 @@ Das Installer-Framework ist modular aufgebaut. In Phase 2 werden ausschließlich
 - `installer/verify.sh`: Struktur für Betriebssystem-, Komponenten- und Abschlussprüfungen.
 - `installer/cleanup.sh`: Struktur für temporäre Dateien, optionale Cache-Bereinigung und Abschlussmeldungen.
 
+Vorabprüfungen
+
+Die Vorabprüfungen sind reine Leseoperationen. Sie bereiten spätere Installer-Phasen vor, verändern das System aber nicht.
+
+- Debian Version: prüft, ob Debian 12 Bookworm als unterstütztes Basissystem verwendet wird.
+- Root-Rechte: prüft, ob der Installer mit administrativen Rechten ausgeführt wird.
+- Netzwerkverbindung: prüft grundlegende Namensauflösung, ohne Netzwerkprofile zu verändern.
+- Freier Speicherplatz: prüft den verfügbaren Speicherplatz auf dem Root-Dateisystem gegen einen konservativen Mindestwert.
+- CPU Architektur: prüft, ob die Architektur zu den unterstützten ARM-Zielplattformen passt.
+- Unterstütztes Board: erkennt Radxa Rock 4C+ oder Raspberry Pi 4 über Geräteinformationen, ohne Hardware-Konfiguration zu ändern.
+
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 
 - Paketinstallation (als Hinweis):

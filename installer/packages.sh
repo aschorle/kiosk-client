@@ -1,24 +1,38 @@
 #!/bin/sh
 #
-# Package planning module for kiosk-client.
+# Package lists for kiosk-client.
 #
 # Purpose:
-#   Defines the future package installation structure for Debian Bookworm.
-#   This file intentionally contains no productive package manager commands yet.
+#   Defines package groups for later installer phases. This file contains only
+#   package list variables and intentionally runs no apt or installation commands.
 
 set -eu
 
-prepare_package_sources() {
-	# TODO: Validate apt sources and repository availability.
-	:
-}
+# Common base packages required by both supported platforms.
+COMMON_PACKAGES="
+git
+curl
+wget
+vim
+openssh-server
+ca-certificates
+network-manager
+"
 
-install_base_packages() {
-	# TODO: Install minimal base packages once the package list is finalized.
-	:
-}
+# Kiosk runtime packages for later browser/display phases.
+KIOSK_PACKAGES="
+chromium
+cage
+"
 
-install_kiosk_packages() {
-	# TODO: Install Chromium, Cage, Wayland, and runtime dependencies later.
-	:
-}
+# Optional development and diagnostics packages.
+DEV_PACKAGES="
+htop
+tree
+"
+
+# Radxa-specific packages are intentionally undefined in this phase.
+RADXA_PACKAGES=""
+
+# Raspberry Pi specific packages are intentionally undefined in this phase.
+RPI_PACKAGES=""
