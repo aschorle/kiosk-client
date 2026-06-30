@@ -15,7 +15,21 @@ Die Standard-URL ist:
 http://localhost
 ```
 
-Das Skript ist bereits darauf vorbereitet, später `config/client.conf` zu lesen. Wenn dort eine einfache Zeile `URL=...` vorhanden ist, wird diese URL verwendet. Wenn die Datei fehlt oder keine URL enthält, bleibt `http://localhost` der Fallback.
+Das Skript lädt `config/client.conf`. Wenn die Datei fehlt oder nicht lesbar ist, bricht der Browserstart mit einer verständlichen Fehlermeldung ab. Wenn `URL` leer ist, bleibt `http://localhost` der Fallback.
+
+Konfigurationsdatei
+
+Die Datei `config/client.conf` enthält die Laufzeitkonfiguration des Clients:
+
+```text
+URL=http://localhost
+DEVICE_ID=display01
+BROWSER=chromium
+```
+
+- `URL`: Adresse der Webseite, die im Kioskmodus geöffnet wird. Wenn der Wert leer ist, verwendet das Startskript `http://localhost`.
+- `DEVICE_ID`: Eindeutige Kennung des Geräts. Sie wird vom Browser-Startskript noch nicht ausgewertet, ist aber Teil der zentralen Client-Konfiguration.
+- `BROWSER`: Name des Chromium-Programms, das über `command -v` gesucht wird. Standard ist `chromium`; als Fallback wird `chromium-browser` akzeptiert.
 
 Chromium-Parameter
 
