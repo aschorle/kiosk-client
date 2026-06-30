@@ -76,6 +76,14 @@ Der Ablauf ist bewusst klein gehalten:
 
 In diesem Schritt werden noch kein Chromium, kein Cage, keine Wayland-Konfiguration, keine systemd-Services, kein Kiosk-Agent und kein Webinterface installiert oder eingerichtet.
 
+Browser
+
+Chromium wird als Browser-Komponente verwendet, weil es unter Debian Bookworm verfügbar ist, moderne Webstandards unterstützt und später zuverlässig im Kioskmodus mit Wayland und Cage betrieben werden kann. Die Browser-Komponente liegt in `installer/browser.sh` und bleibt von der Board-Grundinstallation getrennt.
+
+Das Skript installiert ausschließlich das Paket `chromium` über `apt`, prüft danach den tatsächlichen Programmpfad per `command -v` und liest die installierte Version über den Chromium-Aufruf mit `--version` aus. Diese geprüfte Laufzeitversion ist maßgeblich, nicht nur der Paketname.
+
+Der Kioskmodus wird in diesem Schritt noch nicht aktiviert. Browserflags, Policies, Cache-Konfiguration, Autostart, Wayland, Cage, systemd-Integration und URL-Konfiguration folgen in späteren Phasen, damit Installation, Browser-Laufzeit und Kiosk-Verhalten getrennt testbar bleiben.
+
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 
 - Paketinstallation (als Hinweis):
