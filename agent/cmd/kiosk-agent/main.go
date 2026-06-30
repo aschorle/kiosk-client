@@ -26,6 +26,9 @@ func main() {
 	server := web.NewServer(httpAddr, provider)
 
 	log.Printf("configuration loaded: url=%s device_id=%s browser=%s", cfg.URL, cfg.DeviceID, cfg.Browser)
+	for _, route := range server.Routes() {
+		log.Printf("registered route: %s %s", route.Method, route.Path)
+	}
 	log.Printf("http server listening on %s", httpAddr)
 
 	if err := server.ListenAndServe(); err != nil {
