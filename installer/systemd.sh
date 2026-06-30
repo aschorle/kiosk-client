@@ -13,6 +13,7 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 ENABLED_USER_SERVICES="
 kiosk-browser.service
+kiosk-agent.service
 "
 PREPARED_USER_SERVICES="
 kiosk-runtime.service

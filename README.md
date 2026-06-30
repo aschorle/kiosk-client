@@ -106,6 +106,12 @@ Die Browser-Version wird zuerst über bekannte Debian-Pakete wie `chromium` und 
 
 Der Agent startet, stoppt und beendet Chromium in dieser Phase nicht. Eine automatische Wiederherstellung oder ein Neustart des Browsers ist erst für Version 0.5 vorgesehen.
 
+Agent Runtime
+
+Ab Version 0.4.2 wird der `kiosk-agent` als systemd User Service betrieben. Die Unit `kiosk-agent.service` läuft im Kontext der grafischen Benutzersitzung, verwendet `%h/kiosk-client` als Arbeitsverzeichnis und startet das Binary `%h/kiosk-client/kiosk-agent`.
+
+Der Installer legt die Unit unter `~/.config/systemd/user/` ab, aktiviert sie und startet sie, sobald `graphical-session.target` aktiv ist. Der Service verwendet `Restart=always` und `RestartSec=3`, damit der lokale Agent nach einem Absturz automatisch wieder verfügbar wird.
+
 Neue Runtime Architektur
 
 Boot
