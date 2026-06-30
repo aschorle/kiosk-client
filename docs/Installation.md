@@ -86,32 +86,41 @@ Der Kioskmodus wird in diesem Schritt noch nicht aktiviert. Browserflags, Polici
 
 Automatischer Browserstart
 
-Der automatische Browserstart wird über `systemd/kiosk-browser.service` eingerichtet. Die Unit startet `scripts/start-browser.sh`, wodurch Chromium im Kioskmodus mit der URL aus `config/client.conf` geöffnet wird.
+Der automatische Browserstart wird als systemd User Service eingerichtet. Die Unit liegt im Repository unter `systemd/user/kiosk-browser.service` und wird nach `~/.config/systemd/user/kiosk-browser.service` installiert. Sie startet `scripts/start-browser.sh`, wodurch Chromium im Kioskmodus mit der URL aus `config/client.conf` geöffnet wird.
 
-Die Installation erfolgt über `installer/systemd.sh`. Das Skript kopiert die Service-Datei nach `/etc/systemd/system/kiosk-browser.service`, führt `systemctl daemon-reload` aus, aktiviert den Service und startet ihn direkt. Der Service läuft im Benutzerkontext des Installationsbenutzers. Bei Installationen mit `sudo` wird dafür `SUDO_USER` verwendet; alternativ kann der Zielbenutzer über `KIOSK_USER` vorgegeben werden.
+User Service
 
-Der Service ist für den Start nach dem grafischen Systemziel vorgesehen und wartet auf `systemd-user-sessions.service` sowie `display-manager.service`. Er verwendet `Restart=always` und `RestartSec=5`. Wenn Chromium abstürzt oder beendet wird, startet systemd den Browser nach fünf Sekunden erneut.
+Chromium muss grundsätzlich innerhalb der grafischen Benutzersitzung laufen. Der Browser benötigt die Sitzungsumgebung des angemeldeten Benutzers und soll nicht als root oder als globaler System-Service gestartet werden. Deshalb verwendet der kiosk-client einen systemd User Service mit `After=graphical-session.target` und `PartOf=graphical-session.target`.
 
-Aktivierung:
+Die Installation erfolgt als Zielbenutzer, nicht mit `sudo`:
 
 ```bash
-systemctl enable kiosk-browser.service
-systemctl start kiosk-browser.service
+./installer/systemd.sh
 ```
+
+Das Skript installiert die Unit nach `~/.config/systemd/user/`, führt `systemctl --user daemon-reload` aus, aktiviert den Service und startet ihn direkt neu:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable kiosk-browser.service
+systemctl --user restart kiosk-browser.service
+```
+
+Der Service verwendet `Restart=always` und `RestartSec=5`. Wenn Chromium abstürzt oder beendet wird, startet systemd den Browser nach fünf Sekunden erneut.
 
 Status prüfen:
 
 ```bash
-systemctl status kiosk-browser.service
+systemctl --user status kiosk-browser.service
 ```
 
 Deaktivierung:
 
 ```bash
-systemctl disable --now kiosk-browser.service
+systemctl --user disable --now kiosk-browser.service
 ```
 
-In dieser Phase werden noch kein Cage, keine Wayland-spezifische Sitzung, kein Watchdog und keine lokale Weboberfläche eingerichtet.
+In dieser Phase werden noch kein Cage, keine Wayland-spezifische Konfiguration, kein Watchdog und keine lokale Weboberfläche eingerichtet. Es werden außerdem keine `DISPLAY`-, `XAUTHORITY`- oder sonstigen Sitzungs-Workarounds gesetzt.
 
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 

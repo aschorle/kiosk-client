@@ -1,0 +1,17 @@
+# kiosk-client browser user service
+#
+# This service starts Chromium only inside the graphical user session. It does
+# not configure Wayland, Cage, watchdog, or web interface workarounds.
+
+[Unit]
+Description=kiosk-client Chromium browser
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=%h/kiosk-client/scripts/start-browser.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
