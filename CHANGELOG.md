@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.12.1
+
+- Appliance-Installer installiert Go automatisch, wenn `kiosk-agent` fehlt und kein Go vorhanden ist.
+- Vorhandene ausfuehrbare `kiosk-agent`-Binaries werden weiterhin unveraendert verwendet.
+
 ## 0.12.0
 
 - Chromium-Flag `--disable-gpu` entfernt, damit GPU-Beschleunigung auf RK3399/Panfrost getestet werden kann.

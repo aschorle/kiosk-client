@@ -16,7 +16,6 @@ kiosk-appliance.service
 "
 AGENT_BINARY="$PROJECT_DIR/kiosk-agent"
 AGENT_SOURCE="./agent/cmd/kiosk-agent"
-AGENT_INSTALL_MODE=release
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/install-common.sh"
@@ -73,36 +72,73 @@ run_user_systemctl() {
 	sudo -u "$kiosk_user" XDG_RUNTIME_DIR="/run/user/$user_uid" systemctl --user "$@"
 }
 
-ensure_agent_binary() {
-	# Ensure kiosk-agent exists before installing or enabling its service.
-	kiosk_user=$1
+apt_lists_available() {
+	# Return 0 when apt package lists are already present.
+	find /var/lib/apt/lists -type f -name '*_Packages*' -print -quit 2>/dev/null | grep -q .
+}
 
+update_apt_if_needed() {
+	# Refresh package metadata on fresh minimal systems before installing Go.
+	if apt_lists_available; then
+		log_info "APT-Paketlisten vorhanden; apt-get update wird uebersprungen."
+		return 0
+	fi
+
+	log_info "APT-Paketlisten fehlen; fuehre apt-get update aus."
+	if DEBIAN_FRONTEND=noninteractive apt-get update; then
+		log_success "APT-Paketlisten aktualisiert."
+		return 0
+	fi
+
+	log_error "apt-get update fehlgeschlagen."
+	return 1
+}
+
+ensure_go_available() {
+	# Install Go automatically when the appliance needs to build kiosk-agent.
 	if command -v go >/dev/null 2>&1; then
-		AGENT_INSTALL_MODE=development
-		log_info "Development Mode: Baue kiosk-agent aus vorhandenen Quellen."
-		if ! (cd "$PROJECT_DIR" && go build -o "$AGENT_BINARY" "$AGENT_SOURCE"); then
-			log_error "kiosk-agent konnte nicht gebaut werden."
-			return 1
-		fi
-	else
-		log_info "Release Mode: Go ist nicht installiert; verwende vorhandenes kiosk-agent Binary."
-		if [ -x "$AGENT_BINARY" ]; then
-			log_success "kiosk-agent Binary vorhanden: $AGENT_BINARY"
-			return 0
-		fi
+		log_success "Go ist vorhanden: $(command -v go)"
+		return 0
+	fi
 
-		if [ -e "$AGENT_BINARY" ]; then
-			log_error "kiosk-agent existiert, ist aber nicht ausfuehrbar: $AGENT_BINARY"
-			return 1
-		fi
-
-		log_error "kiosk-agent fehlt: $AGENT_BINARY"
-		log_error "Go ist nicht installiert; bitte ein Release mit vorhandenem kiosk-agent Binary verwenden."
+	if ! command -v apt-get >/dev/null 2>&1; then
+		log_error "Go fehlt und apt-get ist nicht verfuegbar."
 		return 1
 	fi
 
-	if [ ! -x "$AGENT_BINARY" ] && [ -e "$AGENT_BINARY" ]; then
-		log_error "kiosk-agent existiert, ist aber nicht ausfuehrbar: $AGENT_BINARY"
+	if ! update_apt_if_needed; then
+		return 1
+	fi
+
+	log_info "Installiere Go: golang-go"
+	if DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends golang-go; then
+		log_success "Go wurde installiert."
+	else
+		log_error "Go konnte nicht installiert werden."
+		return 1
+	fi
+
+	if command -v go >/dev/null 2>&1; then
+		log_success "Go ist verfuegbar: $(command -v go)"
+		return 0
+	fi
+
+	log_error "Go ist nach der Installation nicht verfuegbar."
+	return 1
+}
+
+build_agent_binary() {
+	# Build kiosk-agent from the repository sources into the service path.
+	kiosk_user=$1
+
+	log_info "Baue kiosk-agent aus vorhandenen Quellen."
+	if ! (cd "$PROJECT_DIR" && go build -o "$AGENT_BINARY" "$AGENT_SOURCE"); then
+		log_error "kiosk-agent konnte nicht gebaut werden."
+		return 1
+	fi
+
+	if [ ! -x "$AGENT_BINARY" ]; then
+		log_error "Build abgeschlossen, aber kiosk-agent ist nicht ausfuehrbar: $AGENT_BINARY"
 		return 1
 	fi
 
@@ -117,6 +153,30 @@ ensure_agent_binary() {
 	fi
 
 	log_success "kiosk-agent gebaut: $AGENT_BINARY"
+}
+
+ensure_agent_binary() {
+	# Ensure kiosk-agent exists before installing or enabling its service.
+	kiosk_user=$1
+
+	if [ -x "$AGENT_BINARY" ]; then
+		log_success "kiosk-agent Binary vorhanden: $AGENT_BINARY"
+		return 0
+	fi
+
+	if [ -e "$AGENT_BINARY" ]; then
+		log_warn "kiosk-agent existiert, ist aber nicht ausfuehrbar und wird neu gebaut: $AGENT_BINARY"
+	else
+		log_info "kiosk-agent Binary fehlt: $AGENT_BINARY"
+	fi
+
+	if ! ensure_go_available; then
+		return 1
+	fi
+
+	if ! build_agent_binary "$kiosk_user"; then
+		return 1
+	fi
 }
 
 install_service_file() {
@@ -204,9 +264,6 @@ install_appliance_runtime() {
 	if [ -d "/run/user/$user_uid" ]; then
 		log_info "Reloading user daemon..."
 		run_user_systemctl "$kiosk_user" "$user_uid" daemon-reload
-		if [ "$AGENT_INSTALL_MODE" = "development" ]; then
-			log_success "Development build completed."
-		fi
 		for service_name in $APPLIANCE_USER_SERVICES; do
 			log_info "Enabling service: $service_name"
 			run_user_systemctl "$kiosk_user" "$user_uid" enable "$service_name"
@@ -215,9 +272,6 @@ install_appliance_runtime() {
 		for service_name in $APPLIANCE_USER_SERVICES; do
 			enable_service_without_session "$kiosk_user" "$user_home" "$service_name"
 		done
-		if [ "$AGENT_INSTALL_MODE" = "development" ]; then
-			log_success "Development build completed."
-		fi
 		log_warn "User session not active; appliance services start after tty1 autologin."
 	fi
 
