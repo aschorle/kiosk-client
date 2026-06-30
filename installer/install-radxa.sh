@@ -131,6 +131,7 @@ install_radxa() {
 	log_success "Radxa-Grundinstallation erfolgreich abgeschlossen."
 	run_step "Browser-Modul ausführen" run_module_phase "Browser" "browser.sh"
 	run_step "Wayland-Modul ausführen" run_module_phase "Wayland" "wayland.sh"
+	run_step "Cage-Modul ausführen" run_module_phase "Cage" "cage.sh"
 	run_step "Systemd-Modul ausführen" run_module_phase "Systemd" "systemd.sh"
 	run_step "Autologin-Modul ausführen" run_module_phase "Autologin" "autologin.sh"
 	run_step "Network-Modul ausführen" run_module_phase "Network" "network.sh"

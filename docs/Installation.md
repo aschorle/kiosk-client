@@ -135,6 +135,25 @@ AutomaticLogin=<KIOSK_USER>
 
 Der Benutzer wird über `KIOSK_USER` bestimmt. Wenn `KIOSK_USER` nicht gesetzt ist, verwendet der Installer `SUDO_USER`. Vor jeder Änderung wird eine Sicherung unter `/etc/gdm3/daemon.conf.bak` angelegt. Die Änderung ist idempotent: Wenn die Werte bereits korrekt gesetzt sind, wird die Datei nicht erneut verändert.
 
+Cage Runtime
+
+Cage wird als schlanker Wayland-Compositor für den kiosk-client vorbereitet. Das Ziel ist eine Laufzeit, in der nach dem Boot keine vollständige Desktop-Umgebung sichtbar ist, sondern nur eine einzelne Anwendung: Chromium im Kioskmodus mit der URL aus `config/client.conf`.
+
+Gegenüber KDE oder einer anderen vollwertigen Desktop-Umgebung hat Cage mehrere Vorteile für einen Kiosk-Client:
+
+- Weniger sichtbare Oberfläche und weniger Ablenkung für den Benutzer.
+- Weniger Hintergrunddienste und damit weniger bewegliche Teile.
+- Eine klare Single-App-Architektur: genau eine grafische Anwendung steht im Vordergrund.
+- Bessere Trennung zwischen Anzeige-Laufzeit und Konfiguration.
+
+Die Zielarchitektur besteht aus drei Runtime-Komponenten:
+
+- Cage: stellt später die minimale Wayland-Sitzung bereit.
+- Browser: `scripts/start-browser.sh` startet Chromium im Kioskmodus und ist bereits für Wayland/Ozone vorbereitet.
+- Konfiguration: `config/client.conf` enthält die URL und browserbezogene Laufzeitwerte.
+
+In dieser Phase installiert `installer/cage.sh` nur die Cage-Paketbasis. Es wird noch keine vollständige Cage-Sitzung konfiguriert, KDE wird nicht entfernt und der Bootprozess wird noch nicht auf Cage umgeschaltet.
+
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 
 - Paketinstallation (als Hinweis):
