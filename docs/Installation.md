@@ -122,6 +122,19 @@ systemctl --user disable --now kiosk-browser.service
 
 In dieser Phase werden noch kein Cage, keine Wayland-spezifische Konfiguration, kein Watchdog und keine lokale Weboberfläche eingerichtet. Es werden außerdem keine `DISPLAY`-, `XAUTHORITY`- oder sonstigen Sitzungs-Workarounds gesetzt.
 
+GDM3 Autologin
+
+Damit der systemd User Service nach dem Boot eine grafische Benutzersitzung vorfindet, richtet `installer/autologin.sh` automatisches Login für GDM3 ein. Unterstützt wird in dieser Phase ausschließlich GDM3.
+
+Das Skript bearbeitet `/etc/gdm3/daemon.conf` und setzt im Abschnitt `[daemon]`:
+
+```ini
+AutomaticLoginEnable=True
+AutomaticLogin=<KIOSK_USER>
+```
+
+Der Benutzer wird über `KIOSK_USER` bestimmt. Wenn `KIOSK_USER` nicht gesetzt ist, verwendet der Installer `SUDO_USER`. Vor jeder Änderung wird eine Sicherung unter `/etc/gdm3/daemon.conf.bak` angelegt. Die Änderung ist idempotent: Wenn die Werte bereits korrekt gesetzt sind, wird die Datei nicht erneut verändert.
+
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 
 - Paketinstallation (als Hinweis):
