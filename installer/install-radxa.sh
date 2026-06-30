@@ -1,12 +1,11 @@
 #!/bin/sh
 #
-# Radxa Rock 4C+ base installer workflow.
+# Radxa Rock 4C+ installer workflow.
 #
 # Purpose:
-#   Performs the first productive base installation steps for kiosk-client on a
-#   Radxa Rock 4C+. The script intentionally installs only common base packages.
-#   Browser, Wayland, Cage, systemd services, kiosk agent, and web interface are
-#   not configured here.
+#   Performs the Radxa Rock 4C+ installation workflow for kiosk-client. After
+#   the base installation succeeds, this script dispatches the existing module
+#   scripts in a fixed order so the complete installation chain can be tested.
 
 set -eu
 
@@ -101,6 +100,25 @@ install_common_packages() {
 	apt install -y --no-install-recommends "$@"
 }
 
+run_module_phase() {
+	# Execute one installer module as a separate script.
+	# Arguments:
+	#   $1: Phase name displayed in the log output.
+	#   $2: Module script file name below installer/.
+	phase_name=$1
+	module_file=$2
+	module_path=$SCRIPT_DIR/$module_file
+
+	log_info "=== $phase_name ==="
+
+	if [ ! -r "$module_path" ]; then
+		log_error "Modul nicht lesbar: $module_path."
+		return 1
+	fi
+
+	sh "$module_path"
+}
+
 install_radxa() {
 	# Execute the Radxa base installation in the required order.
 	run_step "Root-Rechte prüfen" require_root
@@ -111,6 +129,12 @@ install_radxa() {
 	run_step "apt full-upgrade ausführen" apt_full_upgrade
 	run_step "Gemeinsame Basispakete installieren" install_common_packages
 	log_success "Radxa-Grundinstallation erfolgreich abgeschlossen."
+	run_step "Browser-Modul ausführen" run_module_phase "Browser" "browser.sh"
+	run_step "Wayland-Modul ausführen" run_module_phase "Wayland" "wayland.sh"
+	run_step "Systemd-Modul ausführen" run_module_phase "Systemd" "systemd.sh"
+	run_step "Network-Modul ausführen" run_module_phase "Network" "network.sh"
+	run_step "Cleanup-Modul ausführen" run_module_phase "Cleanup" "cleanup.sh"
+	log_success "Radxa-Installationskette erfolgreich abgeschlossen."
 }
 
 main() {
