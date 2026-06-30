@@ -238,10 +238,11 @@ configure_gdm_autologin() {
 	fi
 
 	configure_accountsservice_session "$session_user"
+	restart_accounts_daemon_if_available
 }
 
 configure_accountsservice_session() {
-	# GDM reads the preferred session from AccountsService.
+	# GDM reads the preferred autologin session from AccountsService.
 	session_user=$1
 	account_file=$ACCOUNTS_SERVICE_DIR/$session_user
 	temp_file=$account_file.tmp.$$
@@ -315,7 +316,39 @@ configure_accountsservice_session() {
 		return 1
 	fi
 
-	chmod 0644 "$account_file"
+	if ! chown root:root "$account_file"; then
+		log_error "Besitzrechte konnten nicht gesetzt werden: $account_file"
+		return 1
+	fi
+
+	if ! chmod 0644 "$account_file"; then
+		log_error "Dateirechte konnten nicht gesetzt werden: $account_file"
+		return 1
+	fi
+
+	log_success "GDM AccountsService session set to kiosk"
+}
+
+restart_accounts_daemon_if_available() {
+	# GDM may cache AccountsService data. Restart accounts-daemon when the
+	# service exists, but keep installation successful on images without it.
+	if ! command -v systemctl >/dev/null 2>&1; then
+		log_warn "systemctl nicht gefunden; accounts-daemon wurde nicht neu gestartet."
+		return 0
+	fi
+
+	if ! systemctl cat accounts-daemon.service >/dev/null 2>&1; then
+		log_warn "accounts-daemon.service nicht gefunden; Neustart uebersprungen."
+		return 0
+	fi
+
+	if systemctl restart accounts-daemon.service; then
+		log_success "accounts-daemon.service wurde neu gestartet."
+		return 0
+	fi
+
+	log_warn "accounts-daemon.service konnte nicht neu gestartet werden; Installation wird fortgesetzt."
+	return 0
 }
 
 configure_sddm_autologin() {

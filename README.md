@@ -190,6 +190,8 @@ GNOME und KDE bleiben installiert und koennen weiterhin als Fallback-Sessions im
 
 Der native Ablauf ist: Boot -> Display Manager -> Autologin -> `kiosk` Session -> Cage -> Chromium -> konfigurierte URL. `kiosk-runtime.service` bleibt als installierte Fallback-Unit vorhanden, wird im nativen Sessionbetrieb aber nicht automatisch aktiviert.
 
+Bei GDM/GDM3 reicht `daemon.conf` allein nicht aus, weil GDM die zuletzt bzw. bevorzugt verwendete Sitzung ueber AccountsService speichert. Der Installer setzt deshalb fuer den Kiosk-Benutzer zusaetzlich `/var/lib/AccountsService/users/<user>` auf `Session=kiosk` und startet `accounts-daemon` neu, sofern der Dienst vorhanden ist.
+
 Neue Runtime Architektur
 
 Boot

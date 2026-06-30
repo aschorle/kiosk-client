@@ -252,6 +252,15 @@ Autologin-Session je Display Manager:
 - SDDM: `installer/session.sh` schreibt `/etc/sddm.conf.d/kiosk-client.conf` mit `User=<user>` und `Session=kiosk.desktop`.
 - LightDM: `installer/session.sh` schreibt `/etc/lightdm/lightdm.conf.d/50-kiosk-client.conf` mit `autologin-user=<user>` und `autologin-session=kiosk`.
 
+GDM merkt sich die bevorzugte Sitzung eines Benutzers ueber AccountsService. Wenn dort noch Plasma oder GNOME hinterlegt ist, kann der Autologin trotz vorhandener `kiosk.desktop` wieder `startplasma-x11`, `plasmashell` und `kwin_x11` starten. Deshalb muss fuer GDM in `/var/lib/AccountsService/users/<user>` im Abschnitt `[User]` explizit stehen:
+
+```ini
+[User]
+Session=kiosk
+```
+
+Andere Inhalte in dieser Datei bleiben erhalten. Der Installer setzt die Datei auf `root:root` und `0644`. Falls `accounts-daemon.service` vorhanden ist, wird er nach der Aenderung neu gestartet; fehlt der Dienst, laeuft die Installation weiter.
+
 Der Installationsablauf bleibt:
 
 ```bash
@@ -272,6 +281,7 @@ ls -l /usr/share/wayland-sessions/kiosk.desktop
 cat /usr/share/wayland-sessions/kiosk.desktop
 cat /etc/gdm3/daemon.conf
 cat /var/lib/AccountsService/users/$USER
+grep '^Session=' /var/lib/AccountsService/users/$USER
 cat /etc/sddm.conf.d/kiosk-client.conf
 cat /etc/lightdm/lightdm.conf.d/50-kiosk-client.conf
 journalctl -b
