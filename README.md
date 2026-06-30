@@ -130,6 +130,14 @@ Ab Version 0.4.5 stellt `GET /api/info` allgemeine Agent-, Build-, Betriebssyste
 
 Die Werte werden ausschließlich lesend über Go-Standardbibliothek und vorhandene Statusfunktionen ermittelt. Wenn `build_time` oder `git_commit` beim Build nicht gesetzt wurden, gibt der Agent jeweils `unknown` zurück.
 
+Runtime Control API
+
+Ab Version 0.4.6 stellt der `kiosk-agent` einfache Steuer-Endpunkte für den Browser-Service bereit. `POST /api/browser/restart` führt `systemctl --user restart kiosk-browser.service` aus und `POST /api/browser/reload` führt nur dann `systemctl --user reload kiosk-browser.service` aus, wenn systemd für die Unit Reload-Unterstützung meldet.
+
+Erfolgreiche Aufrufe antworten mit `{"status":"ok"}`. Fehler werden als JSON mit `{"error":"..."}` zurückgegeben. Wenn Reload für `kiosk-browser.service` nicht unterstützt wird, antwortet die API mit HTTP 501 und `{"error":"reload not supported"}`.
+
+Die Runtime Control API nutzt ausschließlich den systemd User Manager. Es gibt keine direkte Prozesssteuerung, keine Signale, keine Shell-Skripte und keine `kill()`-Aufrufe.
+
 Neue Runtime Architektur
 
 Boot

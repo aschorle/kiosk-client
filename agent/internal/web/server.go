@@ -2,8 +2,10 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"github.com/aschorle/kiosk-client/agent/internal/browser"
 	"github.com/aschorle/kiosk-client/agent/internal/config"
 	"github.com/aschorle/kiosk-client/agent/internal/status"
 )
@@ -35,6 +37,8 @@ func (s Server) Routes() []Route {
 		{Method: http.MethodGet, Path: "/api/config"},
 		{Method: http.MethodGet, Path: "/api/info"},
 		{Method: http.MethodGet, Path: "/api/status"},
+		{Method: http.MethodPost, Path: "/api/browser/reload"},
+		{Method: http.MethodPost, Path: "/api/browser/restart"},
 	}
 }
 
@@ -54,6 +58,8 @@ func (s Server) mux() *http.ServeMux {
 	mux.HandleFunc("/api/config", s.handleConfig)
 	mux.HandleFunc("/api/info", s.handleInfo)
 	mux.HandleFunc("/api/status", s.handleStatus)
+	mux.HandleFunc("/api/browser/reload", s.handleBrowserReload)
+	mux.HandleFunc("/api/browser/restart", s.handleBrowserRestart)
 
 	return mux
 }
@@ -108,6 +114,39 @@ func (s Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s Server) handleBrowserRestart(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := browser.RestartService(); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	writeOK(w)
+}
+
+func (s Server) handleBrowserReload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := browser.ReloadService(); err != nil {
+		if errors.Is(err, browser.ErrReloadNotSupported) {
+			writeError(w, http.StatusNotImplemented, err)
+			return
+		}
+
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	writeOK(w)
+}
+
 func (s Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -124,4 +163,19 @@ func (s Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 type errorResponse struct {
 	Error string `json:"error"`
+}
+
+type statusResponse struct {
+	Status string `json:"status"`
+}
+
+func writeOK(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(statusResponse{Status: "ok"})
+}
+
+func writeError(w http.ResponseWriter, code int, err error) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(errorResponse{Error: err.Error()})
 }

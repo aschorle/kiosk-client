@@ -2,6 +2,7 @@ package browser
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,9 +11,17 @@ import (
 )
 
 const (
-	defaultName = "chromium"
-	dpkgStatus = "/var/lib/dpkg/status"
+	defaultName    = "chromium"
+	dpkgStatus    = "/var/lib/dpkg/status"
+	serviceName    = "kiosk-browser.service"
+	systemctl      = "systemctl"
+	userSystemctl  = "--user"
+	reloadProperty = "CanReload"
 )
+
+// ErrReloadNotSupported is returned when systemd reports that the browser
+// service has no reload action.
+var ErrReloadNotSupported = errors.New("reload not supported")
 
 // Runtime describes the configured browser executable.
 //
@@ -50,6 +59,25 @@ func Executable() string {
 // CommandLine returns the command line of the default Chromium process.
 func CommandLine() string {
 	return NewRuntime(defaultName).CommandLine()
+}
+
+// RestartService restarts the browser through the systemd user manager.
+func RestartService() error {
+	return runUserSystemctl("restart", serviceName)
+}
+
+// ReloadService reloads the browser service when systemd reports support for it.
+func ReloadService() error {
+	canReload, err := serviceCanReload()
+	if err != nil {
+		return err
+	}
+
+	if !canReload {
+		return ErrReloadNotSupported
+	}
+
+	return runUserSystemctl("reload", serviceName)
 }
 
 // IsRunning reports whether a matching browser process is currently visible.
@@ -229,6 +257,20 @@ func readExecutableVersion(executable string) string {
 	}
 
 	return strings.TrimSpace(string(output))
+}
+
+func serviceCanReload() (bool, error) {
+	output, err := exec.Command(systemctl, userSystemctl, "show", serviceName, "-p", reloadProperty, "--value").Output()
+	if err != nil {
+		return false, err
+	}
+
+	return strings.TrimSpace(string(output)) == "yes", nil
+}
+
+func runUserSystemctl(args ...string) error {
+	commandArgs := append([]string{userSystemctl}, args...)
+	return exec.Command(systemctl, commandArgs...).Run()
 }
 
 func readPackageVersion(path string, packageName string) string {
