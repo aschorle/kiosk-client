@@ -1,0 +1,18 @@
+# kiosk-client appliance runtime user service
+#
+# This service is used by the Appliance Edition without a display manager or
+# desktop environment. The user is logged in on tty1 by systemd getty autologin.
+# The user manager then starts dbus-run-session, Cage, and Chromium.
+
+[Unit]
+Description=kiosk-client appliance runtime
+After=default.target
+
+[Service]
+WorkingDirectory=%h/kiosk-client
+ExecStart=/usr/bin/dbus-run-session -- /usr/bin/cage -- %h/kiosk-client/scripts/start-browser.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

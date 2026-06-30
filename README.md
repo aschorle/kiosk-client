@@ -174,6 +174,30 @@ Schreibende API-Zugriffe können über `AUTH_TOKEN` in `config/client.conf` gesc
 
 Fehlt der Header oder passt der Token nicht, antwortet der Agent mit HTTP 401 und einem JSON-Fehlerobjekt. Lesende `GET`-Endpunkte bleiben ohne Token erreichbar.
 
+Desktop Edition
+
+Die Desktop Edition ist das bisherige Installationsprofil. Sie bleibt unveraendert erhalten und nutzt die bestehenden Module fuer Display Manager, Autologin, native Kiosk-Session, Cage und Desktop-Fallbacks. GNOME, KDE, GDM, SDDM oder LightDM werden von diesem Profil nicht entfernt.
+
+Der Einstieg bleibt:
+
+```bash
+sudo ./installer/install.sh
+```
+
+Appliance Edition
+
+Ab Version 0.9.0 gibt es zusaetzlich eine Appliance Edition fuer minimale Debian-Systeme ohne Desktop Environment und ohne Display Manager. Sie installiert nur Chromium, Cage, dbus und die benoetigten systemd Units.
+
+Der Einstieg ist:
+
+```bash
+sudo KIOSK_USER=rock ./installer/appliance.sh
+```
+
+Der Appliance-Ablauf ist: Boot -> `getty@tty1` Autologin -> systemd User Service -> `kiosk-appliance.service` -> `dbus-run-session` -> Cage -> `scripts/start-browser.sh` -> Chromium -> konfigurierte URL.
+
+Weitere Details stehen in `docs/Appliance.md`.
+
 Appliance Runtime
 
 Ab Version 0.8.0 ist `kiosk-runtime.service` der produktive systemd User Service fuer den grafischen Kiosk-Betrieb. Der Service startet `scripts/start-cage.sh`, dieses startet Cage, und Cage startet `scripts/start-browser.sh` mit Chromium und der URL aus `config/client.conf`.
