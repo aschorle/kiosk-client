@@ -143,7 +143,12 @@ start_browser() {
 		--no-first-run \
 		--disable-session-crashed-bubble \
 		--disable-infobars \
-		--disable-features=Translate \
+		--disable-gpu \
+		--disable-crash-reporter \
+		--disable-breakpad \
+		--disable-background-networking \
+		--disable-background-timer-throttling \
+		--disable-renderer-backgrounding \
 		--disable-sync \
 		--overscroll-history-navigation=0 \
 		"$kiosk_url"

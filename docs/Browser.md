@@ -38,9 +38,20 @@ Chromium-Parameter
 - `--no-first-run`: unterdrückt Einrichtungsdialoge beim ersten Start.
 - `--disable-session-crashed-bubble`: verhindert Wiederherstellungsdialoge nach einem vorherigen unsauberen Abbruch.
 - `--disable-infobars`: reduziert Browser-Hinweisleisten, die den Kiosk-Inhalt überdecken könnten.
-- `--disable-features=Translate`: deaktiviert automatische Übersetzungsfunktionen und zugehörige Einblendungen.
+- `--disable-gpu`: deaktiviert die GPU-Beschleunigung. Das reduziert auf der Radxa Rock 4C+ die Abhängigkeit von Treiber- und Compositor-Verhalten.
+- `--disable-crash-reporter`: deaktiviert den Chromium-Crash-Reporter, damit im Kiosk-Betrieb keine zusätzlichen Reporter-Prozesse oder Dialogpfade entstehen.
+- `--disable-breakpad`: deaktiviert Breakpad, die von Chromium genutzte Crash-Erfassung.
+- `--disable-background-networking`: verhindert automatische Hintergrund-Netzwerkaktivität des Browsers, die für den reinen Kiosk-Client nicht benötigt wird.
+- `--disable-background-timer-throttling`: verhindert, dass Chromium Timer von Hintergrundseiten drosselt. Das hält Webanwendungen stabiler, wenn Chromium Fensterzustände intern als Hintergrundzustand bewertet.
+- `--disable-renderer-backgrounding`: verhindert, dass Renderer-Prozesse bei Hintergrundbewertung herunterpriorisiert werden.
 - `--disable-sync`: deaktiviert Chromium-Synchronisierung, da der Kiosk-Client keine Benutzerprofile synchronisieren soll.
 - `--overscroll-history-navigation=0`: deaktiviert Navigation durch Overscroll-Gesten, damit die angezeigte Webanwendung nicht versehentlich verlassen wird.
+
+Stabilisierung in Version 0.3.3
+
+Die Runtime verwendet bewusst keine Wayland- oder Ozone-Parameter. Auf der Radxa Rock 4C+ bleibt Chromium in dieser Version im X11-Pfad, weil die installierte Chromium-Version dort stabiler betrieben werden kann.
+
+Experimentelle Feature-Schalter werden vermieden. Die Parameter beschränken sich auf Kioskmodus, Dialogunterdrückung, deaktivierte Hintergrundfunktionen und eine konservative Grafikstrategie ohne GPU-Beschleunigung.
 
 Bewusste Abgrenzung
 
