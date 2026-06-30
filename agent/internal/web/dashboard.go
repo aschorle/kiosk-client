@@ -5,7 +5,7 @@ const dashboardHTML = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kiosk Client Administration</title>
+  <title>kiosk-client Konfiguration</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -34,7 +34,7 @@ const dashboardHTML = `<!doctype html>
     }
 
     main {
-      width: min(1220px, calc(100% - 32px));
+      width: min(980px, calc(100% - 32px));
       margin: 0 auto;
       padding: 28px 0 36px;
     }
@@ -57,7 +57,7 @@ const dashboardHTML = `<!doctype html>
 
     h2 {
       margin: 0;
-      font-size: 1rem;
+      font-size: 1.08rem;
       letter-spacing: 0;
     }
 
@@ -66,14 +66,29 @@ const dashboardHTML = `<!doctype html>
       color: var(--muted);
     }
 
+    section,
+    details {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+    }
+
+    section h2 {
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
     button {
-      min-height: 38px;
+      min-height: 42px;
       border: 1px solid var(--accent);
       border-radius: 6px;
       background: var(--accent);
       color: #ffffff;
-      padding: 0 14px;
+      padding: 0 16px;
       font: inherit;
+      font-weight: 700;
       cursor: pointer;
     }
 
@@ -87,30 +102,57 @@ const dashboardHTML = `<!doctype html>
       opacity: 0.7;
     }
 
-    .actions,
-    .browser-actions {
+    form {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    label {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      min-height: 56px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 0 14px;
+      font: inherit;
+      font-size: 1.12rem;
+    }
+
+    input:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
     }
 
-    .summary {
+    .grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
-      margin: 20px 0;
+      margin-top: 14px;
     }
 
-    .summary-card,
-    section {
+    .system-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tile {
+      min-width: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--panel);
-    }
-
-    .summary-card {
-      min-width: 0;
-      padding: 14px;
+      background: var(--panel-soft);
+      padding: 12px;
     }
 
     .label {
@@ -126,7 +168,7 @@ const dashboardHTML = `<!doctype html>
       min-width: 0;
       margin-top: 6px;
       overflow-wrap: anywhere;
-      font-size: 1.05rem;
+      font-size: 1.02rem;
       font-weight: 650;
     }
 
@@ -136,7 +178,7 @@ const dashboardHTML = `<!doctype html>
       min-height: 28px;
       border-radius: 999px;
       padding: 2px 10px;
-      background: var(--panel-soft);
+      background: var(--panel);
       color: var(--muted);
       font-weight: 700;
     }
@@ -160,25 +202,30 @@ const dashboardHTML = `<!doctype html>
       color: var(--bad);
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
+    .message {
+      min-height: 24px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-weight: 650;
     }
 
-    section {
-      min-width: 0;
-      padding: 16px;
+    .message.error {
+      color: var(--bad);
     }
 
-    section h2 {
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--line);
+    .message.ok {
+      color: var(--good);
+    }
+
+    summary {
+      cursor: pointer;
+      font-size: 1.08rem;
+      font-weight: 700;
     }
 
     dl {
       display: grid;
-      grid-template-columns: minmax(130px, 0.72fr) minmax(0, 1fr);
+      grid-template-columns: minmax(160px, 0.55fr) minmax(0, 1fr);
       gap: 9px 14px;
       margin: 14px 0 0;
     }
@@ -193,24 +240,6 @@ const dashboardHTML = `<!doctype html>
       margin: 0;
       overflow-wrap: anywhere;
       font-weight: 600;
-    }
-
-    .wide {
-      grid-column: 1 / -1;
-    }
-
-    .browser-actions {
-      margin-top: 14px;
-    }
-
-    .message {
-      margin-top: 14px;
-      color: var(--muted);
-      font-weight: 650;
-    }
-
-    .message.error {
-      color: var(--bad);
     }
 
     .history {
@@ -249,20 +278,21 @@ const dashboardHTML = `<!doctype html>
       }
     }
 
-    @media (max-width: 900px) {
-      .summary,
-      .grid {
-        grid-template-columns: 1fr;
+    @media (max-width: 780px) {
+      header,
+      .actions {
+        flex-direction: column;
       }
 
-      header {
-        flex-direction: column;
+      .grid,
+      .system-grid {
+        grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 560px) {
       main {
-        width: min(100% - 20px, 1220px);
+        width: min(100% - 20px, 980px);
         padding-top: 18px;
       }
 
@@ -280,80 +310,100 @@ const dashboardHTML = `<!doctype html>
   <main>
     <header>
       <div>
-        <h1>Kiosk Client</h1>
-        <p>Lokale Administration dieser Appliance</p>
+        <h1>kiosk-client</h1>
+        <p>Lokale Client-Konfiguration</p>
       </div>
-      <div class="actions">
-        <button id="refresh" type="button">Aktualisieren</button>
-      </div>
+      <button id="refresh" class="secondary" type="button">Aktualisieren</button>
     </header>
-
-    <div class="summary" aria-live="polite">
-      <div class="summary-card">
-        <span class="label">Health</span>
-        <span id="health-status" class="value status">laedt</span>
-      </div>
-      <div class="summary-card">
-        <span class="label">Browser</span>
-        <span id="browser-running" class="value status">laedt</span>
-      </div>
-      <div class="summary-card">
-        <span class="label">Watchdog</span>
-        <span id="watchdog-state" class="value status">laedt</span>
-      </div>
-      <div class="summary-card">
-        <span class="label">Letzte Aktualisierung</span>
-        <span id="last-refresh" class="value">laedt</span>
-      </div>
-    </div>
 
     <div id="load-message" class="message error" role="alert" hidden></div>
 
-    <div class="grid">
-      <section>
-        <h2>Systemuebersicht</h2>
-        <dl id="system-list"></dl>
-      </section>
-
-      <section>
-        <h2>Diagnose</h2>
-        <dl id="diagnostics-list"></dl>
-      </section>
-
-      <section>
-        <h2>Konfiguration</h2>
-        <dl id="config-list"></dl>
-      </section>
-
-      <section>
-        <h2>Browser</h2>
-        <dl id="browser-list"></dl>
-        <div class="browser-actions">
-          <button id="browser-restart" type="button">Browser neu starten</button>
-          <button id="browser-reload" class="secondary" type="button">Browser reload</button>
+    <section>
+      <h2>Kiosk-Konfiguration</h2>
+      <form id="config-form">
+        <label for="url-input">URL</label>
+        <input id="url-input" name="url" type="url" placeholder="https://example.org" autocomplete="url">
+        <div class="actions">
+          <button id="save-config" type="submit">Speichern</button>
         </div>
-        <div id="browser-message" class="message" role="status"></div>
-      </section>
+      </form>
+      <div id="config-message" class="message" role="status"></div>
+    </section>
 
-      <section class="wide">
-        <h2>Watchdog</h2>
-        <dl id="watchdog-list"></dl>
-        <table class="history" aria-label="Restart History">
-          <thead>
-            <tr>
-              <th>Zeit</th>
-              <th>Grund</th>
-            </tr>
-          </thead>
-          <tbody id="restart-history"></tbody>
-        </table>
-      </section>
+    <section>
+      <h2>Browser</h2>
+      <div class="actions">
+        <button id="browser-reload" class="secondary" type="button">Reload</button>
+        <button id="browser-restart" type="button">Neustart</button>
+      </div>
+      <div id="browser-message" class="message" role="status"></div>
+    </section>
 
-      <section class="wide">
-        <h2>Metrics</h2>
-        <dl id="metrics-list"></dl>
-      </section>
-    </div>
+    <section>
+      <h2>Status</h2>
+      <div class="grid">
+        <div class="tile">
+          <span class="label">Browser</span>
+          <span id="browser-status" class="value status">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">Watchdog</span>
+          <span id="watchdog-status" class="value status">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">Health</span>
+          <span id="health-status" class="value status">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">Hostname</span>
+          <span id="hostname" class="value">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">IP-Adresse</span>
+          <span id="ip-address" class="value">laedt</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>System</h2>
+      <div class="grid system-grid">
+        <div class="tile">
+          <span class="label">Version</span>
+          <span id="version" class="value">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">Kernel</span>
+          <span id="kernel" class="value">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">RAM</span>
+          <span id="memory" class="value">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">CPU</span>
+          <span id="cpu" class="value">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">Load</span>
+          <span id="load" class="value">laedt</span>
+        </div>
+      </div>
+    </section>
+
+    <details>
+      <summary>Erweiterte Diagnose</summary>
+      <dl id="diagnostics-list"></dl>
+      <table class="history" aria-label="Restart History">
+        <thead>
+          <tr>
+            <th>Zeit</th>
+            <th>Grund</th>
+          </tr>
+        </thead>
+        <tbody id="restart-history"></tbody>
+      </table>
+    </details>
   </main>
 
   <script>
@@ -365,57 +415,30 @@ const dashboardHTML = `<!doctype html>
       metrics: "/api/metrics"
     };
 
-    const fields = {
-      system: [
-        ["hostname", "Hostname"],
-        ["ip", "IP-Adresse"],
-        ["url", "URL"],
-        ["device_id", "Device-ID"],
-        ["browser", "Browser"],
-        ["agent_version", "Agent-Version"],
-        ["os", "Betriebssystem"],
-        ["kernel", "Kernel"],
-        ["architecture", "Architektur"],
-        ["browser_version", "Browser-Version"],
-        ["browser_running", "Browserstatus"],
-        ["health", "Healthstatus"]
-      ],
-      diagnostics: [
-        ["uptime", "Uptime"],
-        ["cpu_model", "CPU"],
-        ["memory", "RAM"],
-        ["disk", "Festplatte"],
-        ["load_average", "Load Average"]
-      ],
-      config: [
-        ["url", "URL"],
-        ["device_id", "Device-ID"],
-        ["browser", "Browser"],
-        ["authentication", "Authentication"]
-      ],
-      browser: [
-        ["browser_running", "Status"],
-        ["browser_pid", "PID"],
-        ["browser_version", "Version"],
-        ["browser_path", "Pfad"],
-        ["browser_cmdline", "Kommandozeile"]
-      ],
-      watchdog: [
-        ["browser_watchdog_state", "Watchdog State"],
-        ["browser_restart_count", "Restart Count"],
-        ["browser_last_restart", "Last Restart"]
-      ],
-      metrics: [
-        ["agent_uptime_seconds", "Agent-Uptime"],
-        ["browser_uptime_seconds", "Browser-Uptime"],
-        ["watchdog_checks", "Watchdog-Checks"],
-        ["browser_restart_count", "Browser-Restarts"],
-        ["http_requests_total", "HTTP-Requests"],
-        ["goroutines", "Goroutines"],
-        ["memory_alloc_bytes", "Go Memory Alloc"],
-        ["memory_sys_bytes", "Go Memory Sys"]
-      ]
-    };
+    const diagnosticsFields = [
+      ["url", "Aktuelle URL"],
+      ["device_id", "Device-ID"],
+      ["browser", "Browser"],
+      ["browser_pid", "Browser PID"],
+      ["browser_version", "Browser-Version"],
+      ["browser_path", "Browser-Pfad"],
+      ["browser_cmdline", "Browser Commandline"],
+      ["browser_restart_count", "Browser-Restarts"],
+      ["browser_last_restart", "Last Restart"],
+      ["uptime", "System-Uptime"],
+      ["architecture", "Architektur"],
+      ["os", "Betriebssystem"],
+      ["go_version", "Go Runtime"],
+      ["build_time", "Build-Zeit"],
+      ["git_commit", "Git-Commit"],
+      ["agent_uptime_seconds", "Agent-Uptime"],
+      ["browser_uptime_seconds", "Browser-Uptime"],
+      ["watchdog_checks", "Watchdog-Checks"],
+      ["http_requests_total", "HTTP-Requests"],
+      ["goroutines", "Goroutines"],
+      ["memory_alloc_bytes", "Go Memory Alloc"],
+      ["memory_sys_bytes", "Go Memory Sys"]
+    ];
 
     const byteFields = new Set([
       "memory_total",
@@ -433,12 +456,16 @@ const dashboardHTML = `<!doctype html>
     ]);
 
     const refreshButton = document.getElementById("refresh");
+    const configForm = document.getElementById("config-form");
+    const urlInput = document.getElementById("url-input");
+    const saveButton = document.getElementById("save-config");
     const restartButton = document.getElementById("browser-restart");
     const reloadButton = document.getElementById("browser-reload");
     const loadMessage = document.getElementById("load-message");
+    const configMessage = document.getElementById("config-message");
     const browserMessage = document.getElementById("browser-message");
 
-    let authenticationKnown = false;
+    let currentConfig = { url: "", device_id: "", browser: "chromium" };
 
     async function loadDashboard() {
       refreshButton.disabled = true;
@@ -451,17 +478,19 @@ const dashboardHTML = `<!doctype html>
         const data = Object.fromEntries(names.map((name, index) => [name, responses[index]]));
         const view = buildView(data);
 
-        renderSummary(view);
-        renderList("system-list", fields.system, view);
-        renderList("diagnostics-list", fields.diagnostics, view);
-        renderList("config-list", fields.config, view);
-        renderList("browser-list", fields.browser, view);
-        renderList("watchdog-list", fields.watchdog, view);
-        renderList("metrics-list", fields.metrics, view);
+        currentConfig = {
+          url: data.config.url || "",
+          device_id: data.config.device_id || "",
+          browser: data.config.browser || "chromium"
+        };
+
+        urlInput.value = currentConfig.url;
+        renderStatus(view);
+        renderSystem(view);
+        renderDiagnostics(view);
         renderHistory(data.status.browser_restart_history);
-        document.getElementById("last-refresh").textContent = new Date().toLocaleString();
       } catch (error) {
-        loadMessage.textContent = error.message || "Dashboard konnte nicht geladen werden.";
+        loadMessage.textContent = error.message || "Die Daten konnten nicht geladen werden.";
         loadMessage.hidden = false;
       } finally {
         refreshButton.disabled = false;
@@ -487,52 +516,52 @@ const dashboardHTML = `<!doctype html>
       return {
         ...status,
         ...metrics,
-        hostname: first(status.hostname, info.hostname),
-        ip: status.ip,
         url: first(config.url, status.url),
         device_id: config.device_id,
         browser: first(config.browser, status.browser),
-        agent_version: first(info.agent_version, status.version),
+        hostname: first(status.hostname, info.hostname),
+        ip: status.ip,
+        version: first(info.agent_version, status.version),
+        go_version: info.go_version,
+        build_time: info.build_time,
+        git_commit: info.git_commit,
         os: joinValues([info.os_name, info.os_version]),
         kernel: first(info.kernel, status.kernel),
         architecture: first(info.architecture, status.architecture),
-        browser_version: status.browser_version,
-        browser_running: status.browser_running,
         health: health.status,
-        uptime: status.uptime,
-        cpu_model: status.cpu_model,
         memory: formatPair(status.memory_available, status.memory_total),
-        disk: formatPair(status.disk_available, status.disk_total),
-        load_average: status.load_average,
-        authentication: authenticationKnown ? "Authentication enabled" : "not exposed"
+        cpu_model: status.cpu_model,
+        load_average: status.load_average
       };
     }
 
-    function renderSummary(view) {
+    function renderStatus(view) {
       const running = view.browser_running === true;
-      const watchdog = view.browser_watchdog_state || "unknown";
-
+      setStatus("browser-status", running ? "laeuft" : "gestoppt", running ? "running" : "stopped");
+      setStatus("watchdog-status", view.browser_watchdog_state || "unknown", view.browser_watchdog_state);
       setStatus("health-status", view.health || "unknown", view.health);
-      setStatus("browser-running", running ? "laeuft" : "gestoppt", running ? "running" : "stopped");
-      setStatus("watchdog-state", watchdog, watchdog);
+      setText("hostname", view.hostname);
+      setText("ip-address", view.ip);
     }
 
-    function setStatus(id, text, state) {
-      const element = document.getElementById(id);
-      element.textContent = value(text);
-      element.className = "value status " + String(state || "").toLowerCase();
+    function renderSystem(view) {
+      setText("version", view.version);
+      setText("kernel", view.kernel);
+      setText("memory", view.memory);
+      setText("cpu", view.cpu_model);
+      setText("load", view.load_average);
     }
 
-    function renderList(id, fieldList, data) {
-      const list = document.getElementById(id);
+    function renderDiagnostics(view) {
+      const list = document.getElementById("diagnostics-list");
       list.replaceChildren();
 
-      for (const [key, label] of fieldList) {
+      for (const [key, label] of diagnosticsFields) {
         const term = document.createElement("dt");
         const description = document.createElement("dd");
 
         term.textContent = label;
-        description.textContent = formatValue(key, data ? data[key] : undefined);
+        description.textContent = formatValue(key, view[key]);
 
         list.append(term, description);
       }
@@ -568,38 +597,95 @@ const dashboardHTML = `<!doctype html>
       return cell;
     }
 
+    async function saveConfig(event) {
+      event.preventDefault();
+      setFormDisabled(true);
+      configMessage.className = "message";
+      configMessage.textContent = "Speichere Konfiguration.";
+
+      const payload = {
+        url: urlInput.value.trim(),
+        device_id: currentConfig.device_id,
+        browser: currentConfig.browser || "chromium"
+      };
+
+      try {
+        const response = await fetch("/api/config", {
+          method: "PUT",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.status === 401) {
+          throw new Error("Authentication enabled");
+        }
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.error || "Speichern fehlgeschlagen.");
+        }
+
+        configMessage.className = "message ok";
+        configMessage.textContent = "Konfiguration gespeichert.";
+        await loadDashboard();
+      } catch (error) {
+        configMessage.className = "message error";
+        configMessage.textContent = error.message || "Speichern fehlgeschlagen.";
+      } finally {
+        setFormDisabled(false);
+      }
+    }
+
     async function runBrowserAction(url, label) {
-      setButtonsDisabled(true);
+      setBrowserButtonsDisabled(true);
       browserMessage.className = "message";
       browserMessage.textContent = label + " wird ausgefuehrt.";
 
       try {
         const response = await fetch(url, { method: "POST", headers: { "Accept": "application/json" } });
         if (response.status === 401) {
-          authenticationKnown = true;
-          browserMessage.textContent = "Authentication enabled";
-          await loadDashboard();
-          return;
+          throw new Error("Authentication enabled");
         }
 
         if (!response.ok) {
-          throw new Error(label + " antwortete mit HTTP " + response.status);
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.error || label + " fehlgeschlagen.");
         }
 
+        browserMessage.className = "message ok";
         browserMessage.textContent = label + " ausgefuehrt.";
         await loadDashboard();
       } catch (error) {
         browserMessage.className = "message error";
         browserMessage.textContent = error.message || label + " fehlgeschlagen.";
       } finally {
-        setButtonsDisabled(false);
+        setBrowserButtonsDisabled(false);
       }
     }
 
-    function setButtonsDisabled(disabled) {
+    function setFormDisabled(disabled) {
+      saveButton.disabled = disabled;
+      urlInput.disabled = disabled;
+      refreshButton.disabled = disabled;
+    }
+
+    function setBrowserButtonsDisabled(disabled) {
       restartButton.disabled = disabled;
       reloadButton.disabled = disabled;
       refreshButton.disabled = disabled;
+    }
+
+    function setStatus(id, text, state) {
+      const element = document.getElementById(id);
+      element.textContent = value(text);
+      element.className = "value status " + String(state || "").toLowerCase();
+    }
+
+    function setText(id, text) {
+      document.getElementById(id).textContent = value(text);
     }
 
     function formatValue(key, raw) {
@@ -704,8 +790,9 @@ const dashboardHTML = `<!doctype html>
     }
 
     refreshButton.addEventListener("click", loadDashboard);
-    restartButton.addEventListener("click", () => runBrowserAction("/api/browser/restart", "Browser-Neustart"));
-    reloadButton.addEventListener("click", () => runBrowserAction("/api/browser/reload", "Browser-Reload"));
+    configForm.addEventListener("submit", saveConfig);
+    restartButton.addEventListener("click", () => runBrowserAction("/api/browser/restart", "Neustart"));
+    reloadButton.addEventListener("click", () => runBrowserAction("/api/browser/reload", "Reload"));
     loadDashboard();
   </script>
 </body>
