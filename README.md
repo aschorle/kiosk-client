@@ -192,6 +192,12 @@ Der native Ablauf ist: Boot -> Display Manager -> Autologin -> `kiosk` Session -
 
 Bei GDM/GDM3 reicht `daemon.conf` allein nicht aus, weil GDM die zuletzt bzw. bevorzugt verwendete Sitzung ueber AccountsService speichert. Der Installer setzt deshalb fuer den Kiosk-Benutzer zusaetzlich `/var/lib/AccountsService/users/<user>` auf `Session=kiosk` und startet `accounts-daemon` neu, sofern der Dienst vorhanden ist.
 
+Native Session Startup
+
+`scripts/start-cage.sh` beendet sich nicht als Wrapper, sondern ersetzt den Session-Prozess direkt per `exec cage -- scripts/start-browser.sh`. Es werden keine Hintergrundprozesse, keine zusaetzliche Shell, keine DISPLAY-Variablen, keine XAUTHORITY-Anpassungen und keine xhost-Freigaben verwendet.
+
+Die Session `kiosk` wird als Wayland-Session unter `/usr/share/wayland-sessions/kiosk.desktop` registriert. Eine alte kiosk-client XSession unter `/usr/share/xsessions/kiosk.desktop` wird vom Installer entfernt, damit GDM nicht versehentlich den X11-Sessionpfad startet.
+
 Neue Runtime Architektur
 
 Boot

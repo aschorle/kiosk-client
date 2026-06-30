@@ -14,7 +14,7 @@ PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 SESSION_NAME="kiosk"
 SESSION_FILE="$SESSION_NAME.desktop"
 WAYLAND_SESSION_DIR="/usr/share/wayland-sessions"
-XSESSION_DIR="/usr/share/xsessions"
+LEGACY_XSESSION_FILE="/usr/share/xsessions/$SESSION_FILE"
 GDM3_CONFIG="/etc/gdm3/daemon.conf"
 ACCOUNTS_SERVICE_DIR="/var/lib/AccountsService/users"
 SDDM_CONFIG_DIR="/etc/sddm.conf.d"
@@ -144,23 +144,43 @@ EOF
 	fi
 }
 
+remove_legacy_xsession_file() {
+	# Older kiosk-client installers registered kiosk as an XSession. That can
+	# make GDM start the session via its X11 path. Remove only the kiosk-client
+	# owned legacy file and leave unrelated sessions untouched.
+	if [ ! -e "$LEGACY_XSESSION_FILE" ]; then
+		return 0
+	fi
+
+	if ! grep -q "kiosk-client native Cage session" "$LEGACY_XSESSION_FILE"; then
+		log_warn "Legacy XSession-Datei gehoert nicht eindeutig kiosk-client und bleibt erhalten: $LEGACY_XSESSION_FILE"
+		return 0
+	fi
+
+	if rm "$LEGACY_XSESSION_FILE"; then
+		log_success "Legacy XSession entfernt: $LEGACY_XSESSION_FILE"
+		return 0
+	fi
+
+	log_error "Legacy XSession konnte nicht entfernt werden: $LEGACY_XSESSION_FILE"
+	return 1
+}
+
 install_kiosk_session_file() {
-	# Install the session in both Wayland and X session directories. GDM stores
-	# the chosen session through AccountsService and may resolve XSession= by
-	# looking at /usr/share/xsessions even when the actual kiosk runtime starts
-	# Cage directly.
+	# Install the native Wayland session used by the display manager. Do not
+	# register this as an XSession; otherwise GDM may start the kiosk path through
+	# its X11 session wrapper and leave the native Cage session non-exclusive.
 	session_user=$1
 	session_exec=$PROJECT_DIR/scripts/start-cage.sh
 	wayland_session_target=$WAYLAND_SESSION_DIR/$SESSION_FILE
-	xsession_target=$XSESSION_DIR/$SESSION_FILE
 
 	if [ ! -x "$session_exec" ]; then
 		log_error "Cage-Startskript ist nicht ausfuehrbar: $session_exec"
 		return 1
 	fi
 
-	if ! mkdir -p "$WAYLAND_SESSION_DIR" "$XSESSION_DIR"; then
-		log_error "Session-Verzeichnisse konnten nicht erstellt werden."
+	if ! mkdir -p "$WAYLAND_SESSION_DIR"; then
+		log_error "Session-Verzeichnis konnte nicht erstellt werden: $WAYLAND_SESSION_DIR"
 		return 1
 	fi
 
@@ -168,7 +188,7 @@ install_kiosk_session_file() {
 		return 1
 	fi
 
-	if ! write_session_file "$xsession_target" "$session_exec"; then
+	if ! remove_legacy_xsession_file; then
 		return 1
 	fi
 
@@ -280,14 +300,9 @@ configure_accountsservice_session() {
 		BEGIN {
 			in_user = 0
 			seen_user = 0
-			wrote_xsession = 0
 			wrote_session = 0
 		}
 		function write_missing() {
-			if (in_user && !wrote_xsession) {
-				print "XSession=" session
-				wrote_xsession = 1
-			}
 			if (in_user && !wrote_session) {
 				print "Session=" session
 				wrote_session = 1
@@ -302,13 +317,7 @@ configure_accountsservice_session() {
 			print
 			next
 		}
-		in_user && /^[[:space:]]*XSession[[:space:]]*=/ {
-			if (!wrote_xsession) {
-				print "XSession=" session
-				wrote_xsession = 1
-			}
-			next
-		}
+		in_user && /^[[:space:]]*XSession[[:space:]]*=/ { next }
 		in_user && /^[[:space:]]*Session[[:space:]]*=/ {
 			if (!wrote_session) {
 				print "Session=" session
@@ -322,7 +331,6 @@ configure_accountsservice_session() {
 			if (!seen_user) {
 				print ""
 				print "[User]"
-				print "XSession=" session
 				print "Session=" session
 			}
 		}

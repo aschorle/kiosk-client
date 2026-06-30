@@ -246,6 +246,14 @@ Die Session startet:
 <repo>/scripts/start-cage.sh
 ```
 
+`scripts/start-cage.sh` ersetzt den laufenden Session-Prozess direkt mit:
+
+```text
+exec cage -- scripts/start-browser.sh
+```
+
+Es bleiben keine Shell-Wrapper oder Hintergrundprozesse zwischen Display Manager und Cage bestehen.
+
 Autologin-Session je Display Manager:
 
 - GDM/GDM3: `installer/session.sh` setzt den Autologin-Benutzer in `/etc/gdm3/daemon.conf` und die Session `kiosk` in `/var/lib/AccountsService/users/<user>`.
@@ -260,6 +268,8 @@ Session=kiosk
 ```
 
 Andere Inhalte in dieser Datei bleiben erhalten. Der Installer setzt die Datei auf `root:root` und `0644`. Falls `accounts-daemon.service` vorhanden ist, wird er nach der Aenderung neu gestartet; fehlt der Dienst, laeuft die Installation weiter.
+
+Ab Version 0.8.3 wird `kiosk` nur als Wayland-Session registriert. Eine alte vom kiosk-client erzeugte `/usr/share/xsessions/kiosk.desktop` wird entfernt, weil GDM sonst den X11-Sessionpfad verwenden kann. In diesem Fall kann `loginctl` weiter `Type=x11` anzeigen und der Kiosk wirkt nicht wie eine exklusive Cage-Session.
 
 Der Installationsablauf bleibt:
 
@@ -279,6 +289,7 @@ Debugging-Befehle:
 cat /etc/X11/default-display-manager
 ls -l /usr/share/wayland-sessions/kiosk.desktop
 cat /usr/share/wayland-sessions/kiosk.desktop
+test ! -e /usr/share/xsessions/kiosk.desktop
 cat /etc/gdm3/daemon.conf
 cat /var/lib/AccountsService/users/$USER
 grep '^Session=' /var/lib/AccountsService/users/$USER
@@ -286,6 +297,20 @@ cat /etc/sddm.conf.d/kiosk-client.conf
 cat /etc/lightdm/lightdm.conf.d/50-kiosk-client.conf
 journalctl -b
 ```
+
+Native Session Debugging:
+
+```bash
+loginctl
+loginctl show-session <SESSION_ID> -p Type -p Name -p Desktop -p State
+pgrep -a cage
+pgrep -a start-cage
+pgrep -a startplasma-x11
+pgrep -a plasmashell
+pgrep -a kwin_x11
+```
+
+Erwartet wird eine `kiosk`-Session ohne `startplasma-x11`, `plasmashell` oder `kwin_x11`. `start-cage.sh` darf nach dem Start nicht als dauerhafter Wrapper-Prozess bestehen bleiben, weil es sich per `exec` durch Cage ersetzt.
 
 Phase 3
 
