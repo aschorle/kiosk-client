@@ -26,8 +26,14 @@ Projektstruktur (Auszug)
 - scripts/
 - systemd/
 - agent/
+  - cmd/kiosk-agent/
+  - internal/config/
+  - internal/browser/
+  - internal/status/
+  - internal/web/
 - web/
 - assets/
+- go.mod
 - README.md
 - CHANGELOG.md
 - LICENSE
