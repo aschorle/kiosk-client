@@ -138,6 +138,12 @@ Erfolgreiche Aufrufe antworten mit `{"status":"ok"}`. Fehler werden als JSON mit
 
 Die Runtime Control API nutzt ausschließlich den systemd User Manager. Es gibt keine direkte Prozesssteuerung, keine Signale, keine Shell-Skripte und keine `kill()`-Aufrufe.
 
+Browser Watchdog
+
+Ab Version 0.5.0 startet der `kiosk-agent` einen Hintergrund-Worker, der alle 30 Sekunden prüft, ob Chromium läuft. Wenn der Browser nicht sichtbar ist, löst der Agent über den systemd User Manager einen Restart von `kiosk-browser.service` aus.
+
+Jeder erfolgreiche Watchdog-Restart erhöht `browser_restart_count` und setzt `browser_last_restart` auf die aktuelle UTC-Zeit. Beide Werte werden über `/api/status` ausgeliefert. Der Worker wird über einen Context gesteuert und beendet sich beim Programmende sauber.
+
 Neue Runtime Architektur
 
 Boot

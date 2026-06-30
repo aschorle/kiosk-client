@@ -2,12 +2,16 @@ package browser
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 const (
@@ -22,6 +26,12 @@ const (
 // ErrReloadNotSupported is returned when systemd reports that the browser
 // service has no reload action.
 var ErrReloadNotSupported = errors.New("reload not supported")
+
+var watchdogMetrics struct {
+	sync.Mutex
+	restartCount uint64
+	lastRestart  string
+}
 
 // Runtime describes the configured browser executable.
 //
@@ -61,6 +71,11 @@ func CommandLine() string {
 	return NewRuntime(defaultName).CommandLine()
 }
 
+// Restart restarts the browser through the systemd user manager.
+func Restart() error {
+	return RestartService()
+}
+
 // RestartService restarts the browser through the systemd user manager.
 func RestartService() error {
 	return runUserSystemctl("restart", serviceName)
@@ -78,6 +93,65 @@ func ReloadService() error {
 	}
 
 	return runUserSystemctl("reload", serviceName)
+}
+
+// RestartCount returns the number of watchdog-triggered browser restarts.
+func RestartCount() uint64 {
+	watchdogMetrics.Lock()
+	defer watchdogMetrics.Unlock()
+
+	return watchdogMetrics.restartCount
+}
+
+// LastRestart returns the UTC timestamp of the last watchdog restart.
+func LastRestart() string {
+	watchdogMetrics.Lock()
+	defer watchdogMetrics.Unlock()
+
+	return watchdogMetrics.lastRestart
+}
+
+// StartWatchdog starts a background browser watchdog worker.
+func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string, ...interface{})) <-chan struct{} {
+	done := make(chan struct{})
+
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+
+	if logf == nil {
+		logf = log.Printf
+	}
+
+	go func() {
+		defer close(done)
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				logf("browser watchdog stopped")
+				return
+			case <-ticker.C:
+				if IsRunning() {
+					continue
+				}
+
+				if err := Restart(); err != nil {
+					logf("browser watchdog restart failed: %v", err)
+					continue
+				}
+
+				restartedAt := time.Now().UTC().Format(time.RFC3339)
+				recordRestart(restartedAt)
+				logf("browser watchdog restarted kiosk-browser.service at %s", restartedAt)
+			}
+		}
+	}()
+
+	return done
 }
 
 // IsRunning reports whether a matching browser process is currently visible.
@@ -271,6 +345,14 @@ func serviceCanReload() (bool, error) {
 func runUserSystemctl(args ...string) error {
 	commandArgs := append([]string{userSystemctl}, args...)
 	return exec.Command(systemctl, commandArgs...).Run()
+}
+
+func recordRestart(restartedAt string) {
+	watchdogMetrics.Lock()
+	defer watchdogMetrics.Unlock()
+
+	watchdogMetrics.restartCount++
+	watchdogMetrics.lastRestart = restartedAt
 }
 
 func readPackageVersion(path string, packageName string) string {

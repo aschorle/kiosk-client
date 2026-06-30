@@ -15,7 +15,7 @@ import (
 	"github.com/aschorle/kiosk-client/agent/internal/config"
 )
 
-const agentVersion = "0.4.5"
+const agentVersion = "0.5.0"
 
 var (
 	BuildTime = "unknown"
@@ -33,17 +33,19 @@ type Status struct {
 	BrowserPID      int    `json:"browser_pid"`
 	BrowserVersion  string `json:"browser_version"`
 	BrowserPath     string `json:"browser_path"`
-	BrowserCmdline  string `json:"browser_cmdline"`
-	Uptime          string `json:"uptime"`
-	Kernel          string `json:"kernel"`
-	DebianVersion   string `json:"debian_version"`
-	Architecture    string `json:"architecture"`
-	CPUModel        string `json:"cpu_model"`
-	MemoryTotal     uint64 `json:"memory_total"`
-	MemoryAvailable uint64 `json:"memory_available"`
-	DiskTotal       uint64 `json:"disk_total"`
-	DiskAvailable   uint64 `json:"disk_available"`
-	LoadAverage     string `json:"load_average"`
+	BrowserCmdline      string `json:"browser_cmdline"`
+	BrowserRestartCount uint64 `json:"browser_restart_count"`
+	BrowserLastRestart  string `json:"browser_last_restart"`
+	Uptime              string `json:"uptime"`
+	Kernel              string `json:"kernel"`
+	DebianVersion       string `json:"debian_version"`
+	Architecture        string `json:"architecture"`
+	CPUModel            string `json:"cpu_model"`
+	MemoryTotal         uint64 `json:"memory_total"`
+	MemoryAvailable     uint64 `json:"memory_available"`
+	DiskTotal           uint64 `json:"disk_total"`
+	DiskAvailable       uint64 `json:"disk_available"`
+	LoadAverage         string `json:"load_average"`
 }
 
 // Info is the public static and runtime information returned by /api/info.
@@ -89,17 +91,19 @@ func (p Provider) Current() Status {
 		BrowserPID:      browserRuntime.PID(),
 		BrowserVersion:  browserRuntime.Version(),
 		BrowserPath:     browserRuntime.Executable(),
-		BrowserCmdline:  browserRuntime.CommandLine(),
-		Uptime:          uptime(),
-		Kernel:          kernel(),
-		DebianVersion:   debianVersion(),
-		Architecture:    architecture(),
-		CPUModel:        cpuModel(),
-		MemoryTotal:     memoryTotal(),
-		MemoryAvailable: memoryAvailable(),
-		DiskTotal:       diskTotal(),
-		DiskAvailable:   diskAvailable(),
-		LoadAverage:     loadAverage(),
+		BrowserCmdline:      browserRuntime.CommandLine(),
+		BrowserRestartCount: browser.RestartCount(),
+		BrowserLastRestart:  browser.LastRestart(),
+		Uptime:              uptime(),
+		Kernel:              kernel(),
+		DebianVersion:       debianVersion(),
+		Architecture:        architecture(),
+		CPUModel:            cpuModel(),
+		MemoryTotal:         memoryTotal(),
+		MemoryAvailable:     memoryAvailable(),
+		DiskTotal:           diskTotal(),
+		DiskAvailable:       diskAvailable(),
+		LoadAverage:         loadAverage(),
 	}
 }
 
