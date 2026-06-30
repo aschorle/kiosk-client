@@ -12,6 +12,7 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 CONFIG_FILE=${KIOSK_CLIENT_CONFIG:-"$PROJECT_DIR/config/client.conf"}
 DEFAULT_URL="http://localhost"
+LOCAL_ADMIN_URL="http://localhost:8080/"
 WELCOME_URL="http://localhost:8080/welcome"
 DEFAULT_BROWSER="chromium"
 
@@ -122,24 +123,24 @@ wait_for_welcome_page() {
 	attempt=1
 	while [ "$attempt" -le 60 ]; do
 		if command -v wget >/dev/null 2>&1; then
-			if wget -q --spider "$url" >/dev/null 2>&1; then
+			if wget -q -O /dev/null "$LOCAL_ADMIN_URL" >/dev/null 2>&1; then
 				return 0
 			fi
 		elif command -v curl >/dev/null 2>&1; then
-			if curl -fsS "$url" >/dev/null 2>&1; then
+			if curl -sS -o /dev/null "$LOCAL_ADMIN_URL" >/dev/null 2>&1; then
 				return 0
 			fi
 		elif is_local_admin_port_listening; then
 			return 0
 		else
-			log_info "Warte auf lokale Willkommensseite: $url"
+			log_info "Warte auf lokale Administration: $LOCAL_ADMIN_URL"
 		fi
 
 		sleep 1
 		attempt=$((attempt + 1))
 	done
 
-	log_error "Lokale Willkommensseite ist nicht erreichbar: $url"
+	log_error "Lokale Administration ist nicht erreichbar: $LOCAL_ADMIN_URL"
 	return 1
 }
 
