@@ -110,8 +110,8 @@ func (s Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte("kiosk-agent running"))
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(dashboardHTML))
 }
 
 func (s Server) handleConfig(w http.ResponseWriter, r *http.Request) {
