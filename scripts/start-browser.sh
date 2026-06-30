@@ -4,8 +4,7 @@
 #
 # Purpose:
 #   Launches Chromium in kiosk mode with a minimal, predictable set of runtime
-#   flags. Runtime values are read from config/client.conf. Chromium is prepared
-#   for Wayland/Ozone so it can later run inside Cage.
+#   flags. Runtime values are read from config/client.conf.
 
 set -eu
 
@@ -140,8 +139,6 @@ start_browser() {
 
 	exec "$chromium_path" \
 		--kiosk \
-		--enable-features=UseOzonePlatform \
-		--ozone-platform=wayland \
 		--incognito \
 		--no-first-run \
 		--disable-session-crashed-bubble \

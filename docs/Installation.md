@@ -154,6 +154,10 @@ Die Zielarchitektur besteht aus drei Runtime-Komponenten:
 
 In dieser Phase installiert `installer/cage.sh` nur die Cage-Paketbasis. Es wird noch keine vollständige Cage-Sitzung konfiguriert, KDE wird nicht entfernt und der Bootprozess wird noch nicht auf Cage umgeschaltet.
 
+Phase 3
+
+Wayland/Cage wurde vorbereitet, ist jedoch bis zur Umstellung auf ein aktuelleres Chromium deaktiviert. Die aktuelle Radxa-Version von Chromium unterstützt `--ozone-platform=wayland` nicht zuverlässig. Deshalb läuft die Runtime in Version 0.3 weiterhin über X11, während Cage installiert bleibt und für Version 0.4 vorbereitet ist.
+
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 
 - Paketinstallation (als Hinweis):
