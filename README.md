@@ -80,6 +80,10 @@ Version 0.3
 
 - Runtime X11
 
+Version 0.3.1
+
+- Runtime Hardening
+
 Version 0.4
 
 - Runtime Wayland/Cage

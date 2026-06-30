@@ -158,6 +158,14 @@ Phase 3
 
 Wayland/Cage wurde vorbereitet, ist jedoch bis zur Umstellung auf ein aktuelleres Chromium deaktiviert. Die aktuelle Radxa-Version von Chromium unterstützt `--ozone-platform=wayland` nicht zuverlässig. Deshalb läuft die Runtime in Version 0.3 weiterhin über X11, während Cage installiert bleibt und für Version 0.4 vorbereitet ist.
 
+Kiosk Runtime
+
+Version 0.3.1 härtet die Kiosk-Laufzeit gegen Unterbrechungen durch Energiespar- und Sperrfunktionen. Der Bildschirm bleibt dauerhaft aktiv, es gibt keinen Lock Screen, keinen Bildschirmschoner, kein automatisches Abdunkeln, keine automatische Displayabschaltung und keinen automatischen Suspend oder Hibernate.
+
+Die Konfiguration erfolgt über `installer/power.sh`. Für GNOME/GDM3 werden offizielle `gsettings` verwendet, um Sperrbildschirm, Bildschirmschoner, Abdunkeln und automatische GNOME-Schlafzustände zu deaktivieren. Systemweite Schlaf- und Idle-Aktionen werden über systemd-Konfigurationsdateien unter `/etc/systemd/logind.conf.d/` und `/etc/systemd/sleep.conf.d/` deaktiviert.
+
+Es werden keine `xset`-Workarounds und keine Shell-Hacks verwendet.
+
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 
 - Paketinstallation (als Hinweis):

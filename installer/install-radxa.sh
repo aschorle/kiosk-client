@@ -134,6 +134,7 @@ install_radxa() {
 	run_step "Cage-Modul ausführen" run_module_phase "Cage" "cage.sh"
 	run_step "Systemd-Modul ausführen" run_module_phase "Systemd" "systemd.sh"
 	run_step "Autologin-Modul ausführen" run_module_phase "Autologin" "autologin.sh"
+	run_step "Power-Modul ausführen" run_module_phase "Power" "power.sh"
 	run_step "Network-Modul ausführen" run_module_phase "Network" "network.sh"
 	run_step "Cleanup-Modul ausführen" run_module_phase "Cleanup" "cleanup.sh"
 	log_success "Radxa-Installationskette erfolgreich abgeschlossen."
