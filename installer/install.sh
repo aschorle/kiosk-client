@@ -3,11 +3,10 @@
 # kiosk-client installer dispatcher.
 #
 # Purpose:
-#   This script is the single supported entry point for kiosk-client
-#   installation. It performs only global checks and board selection, then
-#   delegates all board-specific installation work to the matching installer.
-#   No package installation, service setup, browser setup, or hardware-specific
-#   configuration is implemented here.
+#   This script is the single supported entry point for the Appliance Edition.
+#   It performs only global checks and board selection, then delegates all
+#   board-specific installation work to the matching Appliance installer.
+#   No Desktop Edition modules are run from this path.
 
 set -eu
 
@@ -67,7 +66,7 @@ main() {
 	# Global installer flow. Keep this order explicit so future changes remain
 	# easy to audit: load helpers, initialize logging, check prerequisites,
 	# detect the board, dispatch.
-	log_info "kiosk-client Installation gestartet."
+	log_info "kiosk-client Appliance Installation gestartet."
 
 	run_required_check "Root-Rechte prüfen" require_root
 	run_required_check "CPU-Architektur prüfen" check_architecture

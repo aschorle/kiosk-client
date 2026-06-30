@@ -9,6 +9,7 @@ Boot
 -> systemd getty@tty1
 -> Autologin des Kiosk-Benutzers
 -> systemd --user default.target
+-> kiosk-agent.service
 -> kiosk-appliance.service
 -> dbus-run-session
 -> cage
@@ -22,18 +23,23 @@ Boot
 Auf einem minimalen Debian 12 Bookworm:
 
 ```bash
-sudo KIOSK_USER=rock ./installer/appliance.sh
+sudo KIOSK_USER=rock ./installer/install.sh
 ```
 
 Wenn `KIOSK_USER` nicht gesetzt ist, verwendet der Installer `SUDO_USER`.
+`installer/install.sh` erkennt das Board und delegiert an den passenden
+Appliance-Installer. Direkte Aufrufe von `installer/appliance.sh` bleiben fuer
+Tests des generischen Appliance-Profils moeglich.
 
 ## Installierte Pakete
 
 Die Appliance Edition installiert nur:
 
+- `ca-certificates`
 - `chromium`
 - `cage`
 - `dbus`
+- `dbus-user-session`
 
 Es werden keine Display-Manager- oder Desktop-Pakete installiert.
 
@@ -49,13 +55,15 @@ Diese meldet den Kiosk-Benutzer automatisch auf tty1 an. GDM, SDDM und LightDM b
 
 ## Runtime
 
-`installer/runtime.sh` installiert den User Service:
+`installer/runtime.sh` installiert die User Services:
 
 ```text
+~/.config/systemd/user/kiosk-agent.service
 ~/.config/systemd/user/kiosk-appliance.service
 ```
 
-Der Service startet:
+`kiosk-agent.service` startet die lokale Administrationsoberflaeche und API.
+`kiosk-appliance.service` startet:
 
 ```text
 dbus-run-session
@@ -63,14 +71,17 @@ dbus-run-session
 -> scripts/start-browser.sh
 ```
 
-Die Unit wird fuer `default.target` aktiviert, damit sie nach dem tty1-Autologin im systemd User Manager startet.
+Beide Units werden fuer `default.target` aktiviert, damit sie nach dem
+tty1-Autologin im systemd User Manager starten.
 
 ## Debugging
 
 ```bash
 systemctl status getty@tty1.service
 cat /etc/systemd/system/getty@tty1.service.d/kiosk-autologin.conf
+systemctl --user status kiosk-agent.service
 systemctl --user status kiosk-appliance.service
+journalctl --user -u kiosk-agent.service -f
 journalctl --user -u kiosk-appliance.service -f
 pgrep -a cage
 pgrep -a chromium
@@ -79,4 +90,7 @@ loginctl
 
 ## Desktop Edition
 
-Die bestehende Desktop Edition bleibt erhalten. Sie verwendet die vorhandenen Module fuer Display Manager, native Sessions und Desktop-Fallbacks. Die Appliance Edition ist ein zusaetzliches Installationsprofil und entfernt keine bestehenden Pakete.
+Die bestehende Desktop Edition bleibt eingefroren. Sie verwendet die vorhandenen
+Legacy-Module fuer Display Manager, native Sessions und Desktop-Fallbacks. Die
+Appliance Edition fuehrt diese Module nicht aus und entfernt keine bestehenden
+Pakete.

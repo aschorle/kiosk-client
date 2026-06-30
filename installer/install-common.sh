@@ -62,8 +62,8 @@ require_root() {
 }
 
 check_debian() {
-	# Verify that the operating system is Debian 12 Bookworm.
-	# Returns 0 for supported systems and 1 otherwise.
+	# Verify that the operating system is Debian/Armbian on a Debian 12 Bookworm
+	# base. Returns 0 for supported systems and 1 otherwise.
 	if [ ! -r /etc/os-release ]; then
 		log_error "/etc/os-release nicht lesbar."
 		return 1
@@ -72,10 +72,14 @@ check_debian() {
 	# shellcheck disable=SC1091
 	. /etc/os-release
 
-	if [ "${ID:-}" = "debian" ] && { [ "${VERSION_CODENAME:-}" = "bookworm" ] || [ "${VERSION_ID:-}" = "12" ]; }; then
-		log_success "Debian 12 Bookworm erkannt."
-		return 0
-	fi
+	case "${ID:-}" in
+		debian|armbian)
+			if [ "${VERSION_CODENAME:-}" = "bookworm" ] || [ "${VERSION_ID:-}" = "12" ]; then
+				log_success "Debian/Armbian Bookworm-Basis erkannt."
+				return 0
+			fi
+			;;
+	esac
 
 	log_error "Nicht unterstütztes Betriebssystem: ${PRETTY_NAME:-unbekannt}."
 	return 1

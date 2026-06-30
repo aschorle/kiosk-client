@@ -10,14 +10,13 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
-APPLIANCE_PACKAGES="
-chromium
-cage
-dbus
-"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/install-common.sh"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/packages.sh"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/verify.sh"
 
 install_appliance_packages() {
 	# Install only the package set required by the Appliance Edition runtime.
@@ -28,6 +27,11 @@ install_appliance_packages() {
 	for package in $APPLIANCE_PACKAGES; do
 		set -- "$@" "$package"
 	done
+
+	if [ "$#" -eq 0 ]; then
+		log_error "APPLIANCE_PACKAGES ist leer."
+		return 1
+	fi
 
 	log_info "Installiere Appliance-Pakete: $*"
 	apt install -y --no-install-recommends "$@"
@@ -49,9 +53,7 @@ run_module() {
 install_appliance() {
 	# Install the minimal appliance profile in a deterministic order.
 	require_root
-	check_debian
-	check_architecture
-	check_network
+	run_preflight_checks
 	install_appliance_packages
 	run_module "runtime.sh"
 	run_module "tty.sh"

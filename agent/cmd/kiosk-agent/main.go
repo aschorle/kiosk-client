@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version          = "0.10.0"
+	version          = "0.10.1"
 	configPath       = "config/client.conf"
 	httpAddr         = ":8080"
 	watchdogInterval = 30 * time.Second

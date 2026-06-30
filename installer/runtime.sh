@@ -3,14 +3,17 @@
 # Appliance runtime setup for kiosk-client.
 #
 # Purpose:
-#   Installs and enables the kiosk-appliance.service systemd user service. This
+#   Installs and enables the Appliance Edition systemd user services. This
 #   runtime does not require a display manager or desktop environment.
 
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
-SERVICE_NAME="kiosk-appliance.service"
+APPLIANCE_USER_SERVICES="
+kiosk-agent.service
+kiosk-appliance.service
+"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/install-common.sh"
@@ -68,12 +71,13 @@ run_user_systemctl() {
 }
 
 install_service_file() {
-	# Copy kiosk-appliance.service into the kiosk user's systemd directory.
+	# Copy one Appliance user service into the kiosk user's systemd directory.
 	kiosk_user=$1
 	user_home=$2
-	service_source=$PROJECT_DIR/systemd/user/$SERVICE_NAME
+	service_name=$3
+	service_source=$PROJECT_DIR/systemd/user/$service_name
 	user_systemd_dir=$user_home/.config/systemd/user
-	service_target=$user_systemd_dir/$SERVICE_NAME
+	service_target=$user_systemd_dir/$service_name
 
 	if [ ! -r "$service_source" ]; then
 		log_error "Service-Datei nicht lesbar: $service_source"
@@ -86,30 +90,31 @@ install_service_file() {
 	fi
 
 	if ! cp "$service_source" "$service_target"; then
-		log_error "$SERVICE_NAME konnte nicht installiert werden."
+		log_error "$service_name konnte nicht installiert werden."
 		return 1
 	fi
 
 	if ! chown "$kiosk_user:$kiosk_user" "$user_systemd_dir" "$service_target"; then
-		log_error "Besitzrechte fuer $SERVICE_NAME konnten nicht gesetzt werden."
+		log_error "Besitzrechte fuer $service_name konnten nicht gesetzt werden."
 		return 1
 	fi
 
 	if ! chmod 0644 "$service_target"; then
-		log_error "Dateirechte fuer $SERVICE_NAME konnten nicht gesetzt werden."
+		log_error "Dateirechte fuer $service_name konnten nicht gesetzt werden."
 		return 1
 	fi
 
-	log_success "$SERVICE_NAME installiert: $service_target"
+	log_success "$service_name installiert: $service_target"
 }
 
 enable_service_without_session() {
 	# Enable the user service by creating the default.target.wants symlink.
 	kiosk_user=$1
 	user_home=$2
+	service_name=$3
 	user_systemd_dir=$user_home/.config/systemd/user
 	wants_dir=$user_systemd_dir/default.target.wants
-	wants_link=$wants_dir/$SERVICE_NAME
+	wants_link=$wants_dir/$service_name
 
 	if ! mkdir -p "$wants_dir"; then
 		log_error "Aktivierungsverzeichnis konnte nicht erstellt werden: $wants_dir"
@@ -117,8 +122,8 @@ enable_service_without_session() {
 	fi
 
 	if [ ! -e "$wants_link" ]; then
-		if ! ln -s "../$SERVICE_NAME" "$wants_link"; then
-			log_error "$SERVICE_NAME konnte nicht aktiviert werden."
+		if ! ln -s "../$service_name" "$wants_link"; then
+			log_error "$service_name konnte nicht aktiviert werden."
 			return 1
 		fi
 	fi
@@ -128,11 +133,11 @@ enable_service_without_session() {
 		return 1
 	fi
 
-	log_success "$SERVICE_NAME fuer default.target aktiviert."
+	log_success "$service_name fuer default.target aktiviert."
 }
 
 install_appliance_runtime() {
-	# Install and enable the appliance user runtime.
+	# Install and enable the appliance user runtime services.
 	if ! require_root; then
 		return 1
 	fi
@@ -141,16 +146,22 @@ install_appliance_runtime() {
 	user_home=$(get_user_home "$kiosk_user")
 	user_uid=$(get_user_uid "$kiosk_user")
 
-	install_service_file "$kiosk_user" "$user_home"
+	for service_name in $APPLIANCE_USER_SERVICES; do
+		install_service_file "$kiosk_user" "$user_home" "$service_name"
+	done
 
 	if [ -d "/run/user/$user_uid" ]; then
 		log_info "Reloading user daemon..."
 		run_user_systemctl "$kiosk_user" "$user_uid" daemon-reload
-		log_info "Enabling service: $SERVICE_NAME"
-		run_user_systemctl "$kiosk_user" "$user_uid" enable "$SERVICE_NAME"
+		for service_name in $APPLIANCE_USER_SERVICES; do
+			log_info "Enabling service: $service_name"
+			run_user_systemctl "$kiosk_user" "$user_uid" enable "$service_name"
+		done
 	else
-		enable_service_without_session "$kiosk_user" "$user_home"
-		log_warn "User session not active; appliance runtime starts after tty1 autologin."
+		for service_name in $APPLIANCE_USER_SERVICES; do
+			enable_service_without_session "$kiosk_user" "$user_home" "$service_name"
+		done
+		log_warn "User session not active; appliance services start after tty1 autologin."
 	fi
 
 	log_success "Appliance Runtime installiert."

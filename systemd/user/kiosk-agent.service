@@ -1,14 +1,12 @@
 # kiosk-client agent user service
 #
-# This service starts the local kiosk-agent inside the graphical user session.
+# This service starts the local kiosk-agent in the user manager.
 # The agent exposes local HTTP status endpoints and monitors the browser
 # runtime without controlling it.
 
 [Unit]
 Description=kiosk-client agent
-After=graphical-session.target
-BindsTo=graphical-session.target
-PartOf=graphical-session.target
+After=default.target
 
 [Service]
 WorkingDirectory=%h/kiosk-client
@@ -17,4 +15,4 @@ Restart=always
 RestartSec=3
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=default.target

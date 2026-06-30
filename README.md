@@ -12,8 +12,8 @@ Ziele
 - Wayland + Cage
 - Chromium im Kioskmodus
 - systemd-Services für Start/Überwachung
-- Netzwerk über NetworkManager (WLAN-Betrieb)
-- SSH für Wartung
+- minimale Netzwerkbasis des Zielsystems
+- lokale Administration ueber den kiosk-agent
 
 Projektstruktur (Auszug)
 
@@ -176,25 +176,21 @@ Fehlt der Header oder passt der Token nicht, antwortet der Agent mit HTTP 401 un
 
 Desktop Edition
 
-Die Desktop Edition ist das bisherige Installationsprofil. Sie bleibt unveraendert erhalten und nutzt die bestehenden Module fuer Display Manager, Autologin, native Kiosk-Session, Cage und Desktop-Fallbacks. GNOME, KDE, GDM, SDDM oder LightDM werden von diesem Profil nicht entfernt.
+Die Desktop Edition ist das bisherige Installationsprofil. Sie bleibt eingefroren erhalten und nutzt die bestehenden Legacy-Module fuer Display Manager, Autologin, native Kiosk-Session, Cage und Desktop-Fallbacks. GNOME, KDE, GDM, SDDM oder LightDM werden von diesem Profil nicht entfernt.
 
-Der Einstieg bleibt:
-
-```bash
-sudo ./installer/install.sh
-```
+Der produktive Installer fuehrt diese Module nicht mehr aus.
 
 Appliance Edition
 
-Ab Version 0.9.0 gibt es zusaetzlich eine Appliance Edition fuer minimale Debian-Systeme ohne Desktop Environment und ohne Display Manager. Sie installiert nur Chromium, Cage, dbus und die benoetigten systemd Units.
+Ab Version 0.10.1 ist die Appliance Edition der produktive Installerpfad fuer minimale Debian-/Armbian-Systeme ohne Desktop Environment und ohne Display Manager. Sie installiert nur die benoetigten Appliance-Pakete und systemd User-Units.
 
 Der Einstieg ist:
 
 ```bash
-sudo KIOSK_USER=rock ./installer/appliance.sh
+sudo KIOSK_USER=rock ./installer/install.sh
 ```
 
-Der Appliance-Ablauf ist: Boot -> `getty@tty1` Autologin -> systemd User Service -> `kiosk-appliance.service` -> `dbus-run-session` -> Cage -> `scripts/start-browser.sh` -> Chromium -> konfigurierte URL.
+Der Appliance-Ablauf ist: Boot -> `getty@tty1` Autologin -> systemd User Manager -> `kiosk-agent.service` und `kiosk-appliance.service` -> `dbus-run-session` -> Cage -> `scripts/start-browser.sh` -> Chromium -> konfigurierte URL.
 
 Weitere Details stehen in `docs/Appliance.md`.
 

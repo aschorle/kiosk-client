@@ -8,29 +8,25 @@
 
 set -eu
 
-# Common base packages required by both supported platforms.
-COMMON_PACKAGES="
-git
-curl
-wget
-vim
-openssh-server
+# Minimal Appliance Edition packages.
+#
+# Keep this list limited to packages required by the runtime path:
+# systemd user service -> dbus-run-session -> Cage -> Chromium.
+APPLIANCE_PACKAGES="
 ca-certificates
-network-manager
-golang-go
-"
-
-# Kiosk runtime packages for later browser/display phases.
-KIOSK_PACKAGES="
 chromium
 cage
+dbus
+dbus-user-session
 "
 
-# Optional development and diagnostics packages.
-DEV_PACKAGES="
-htop
-tree
-"
+# Legacy package groups are kept for the frozen Desktop Edition only. They are
+# intentionally empty in the Appliance installer path.
+COMMON_PACKAGES=""
+KIOSK_PACKAGES="$APPLIANCE_PACKAGES"
+
+# Optional development and diagnostics packages. Not used by Appliance Edition.
+DEV_PACKAGES=""
 
 # Radxa-specific packages are intentionally undefined in this phase.
 RADXA_PACKAGES=""
