@@ -48,8 +48,27 @@ install_cage_packages() {
 	return 1
 }
 
+verify_cage() {
+	# Verify that Cage is installed and print the detected version.
+	if ! cage_path=$(command -v cage 2>/dev/null); then
+		log_error "Cage wurde nicht gefunden. Bitte installer/cage.sh erneut ausführen."
+		return 1
+	fi
+
+	log_success "Cage gefunden: $cage_path"
+
+	if cage_version=$(cage --version 2>&1); then
+		log_info "Cage Version: $cage_version"
+		return 0
+	fi
+
+	log_warn "Cage Version konnte nicht ermittelt werden."
+	return 0
+}
+
 main() {
 	install_cage_packages
+	verify_cage
 }
 
 if [ "${0##*/}" = "cage.sh" ]; then

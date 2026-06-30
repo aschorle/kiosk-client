@@ -84,6 +84,26 @@ Version 0.3.1
 
 - Runtime Hardening
 
-Version 0.4
+Version 0.4.0
 
 - Runtime Wayland/Cage
+
+Neue Runtime Architektur
+
+Boot
+
+↓
+
+Autologin
+
+↓
+
+kiosk-runtime.service
+
+↓
+
+Cage
+
+↓
+
+Chromium

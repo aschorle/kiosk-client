@@ -1,0 +1,17 @@
+# kiosk-client Cage runtime user service
+#
+# This service starts the future GNOME-free runtime path:
+# Cage -> Chromium -> configured URL.
+
+[Unit]
+Description=kiosk-client Cage runtime
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=%h/kiosk-client/scripts/start-cage.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

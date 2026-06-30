@@ -3,16 +3,20 @@
 # systemd user-service setup module for kiosk-client.
 #
 # Purpose:
-#   Installs and enables kiosk-browser.service as a systemd user service. The
-#   browser runs in the graphical user session, while the main installer may run
-#   as root.
+#   Installs and enables the current kiosk-client systemd user service. Future
+#   runtime services are copied into place, but are not enabled until the boot
+#   path is intentionally switched.
 
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
-SERVICE_NAME="kiosk-browser.service"
-SERVICE_SOURCE="$PROJECT_DIR/systemd/user/$SERVICE_NAME"
+ENABLED_USER_SERVICES="
+kiosk-browser.service
+"
+PREPARED_USER_SERVICES="
+kiosk-runtime.service
+"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/install-common.sh"
@@ -76,18 +80,19 @@ enable_user_service_without_session() {
 	# cannot talk to the user manager.
 	target_user=$1
 	user_home=$2
+	service_name=$3
 	user_systemd_dir=$user_home/.config/systemd/user
 	wants_dir=$user_systemd_dir/default.target.wants
-	service_target=$user_systemd_dir/$SERVICE_NAME
-	wants_link=$wants_dir/$SERVICE_NAME
+	service_target=$user_systemd_dir/$service_name
+	wants_link=$wants_dir/$service_name
 
 	if ! mkdir -p "$wants_dir"; then
 		log_error "User-Service-Aktivierungsverzeichnis konnte nicht erstellt werden: $wants_dir"
 		return 1
 	fi
 
-	if [ ! -e "$wants_link" ] && ! ln -s "../$SERVICE_NAME" "$wants_link"; then
-		log_error "$SERVICE_NAME konnte nicht für default.target aktiviert werden."
+	if [ ! -e "$wants_link" ] && ! ln -s "../$service_name" "$wants_link"; then
+		log_error "$service_name konnte nicht für default.target aktiviert werden."
 		return 1
 	fi
 
@@ -103,46 +108,49 @@ install_service_file() {
 	# Copy the user service and assign ownership to the target user.
 	target_user=$1
 	user_home=$2
+	service_name=$3
+	service_source=$PROJECT_DIR/systemd/user/$service_name
 	user_systemd_dir=$user_home/.config/systemd/user
-	service_target=$user_systemd_dir/$SERVICE_NAME
+	service_target=$user_systemd_dir/$service_name
 
-	log_info "Installing user service..."
+	if [ ! -r "$service_source" ]; then
+		log_error "Service-Datei nicht lesbar: $service_source"
+		return 1
+	fi
+
+	log_info "Installing user service: $service_name"
 	if ! mkdir -p "$user_systemd_dir"; then
 		log_error "User-systemd-Verzeichnis konnte nicht erstellt werden: $user_systemd_dir"
 		return 1
 	fi
 
-	if ! cp "$SERVICE_SOURCE" "$service_target"; then
-		log_error "$SERVICE_NAME konnte nicht installiert werden."
+	if ! cp "$service_source" "$service_target"; then
+		log_error "$service_name konnte nicht installiert werden."
 		return 1
 	fi
 
 	if ! chown "$target_user:$target_user" "$user_systemd_dir" "$service_target"; then
-		log_error "Besitzrechte für $SERVICE_NAME konnten nicht gesetzt werden."
+		log_error "Besitzrechte für $service_name konnten nicht gesetzt werden."
 		return 1
 	fi
 
 	if ! chmod 0644 "$service_target"; then
-		log_error "Dateirechte für $SERVICE_NAME konnten nicht gesetzt werden."
+		log_error "Dateirechte für $service_name konnten nicht gesetzt werden."
 		return 1
 	fi
 
-	log_success "$SERVICE_NAME installiert: $service_target"
+	log_success "$service_name installiert: $service_target"
 	return 0
 }
 
-install_browser_service() {
-	# Install, enable, restart, and verify the systemd user service.
-	if [ ! -r "$SERVICE_SOURCE" ]; then
-		log_error "Service-Datei nicht lesbar: $SERVICE_SOURCE"
-		return 1
-	fi
+install_user_service() {
+	# Install, enable, restart, and verify one systemd user service.
+	target_user=$1
+	user_home=$2
+	user_uid=$3
+	service_name=$4
 
-	target_user=$(detect_target_user)
-	user_home=$(get_user_home "$target_user")
-	user_uid=$(get_user_uid "$target_user")
-
-	if ! install_service_file "$target_user" "$user_home"; then
+	if ! install_service_file "$target_user" "$user_home" "$service_name"; then
 		return 1
 	fi
 
@@ -153,40 +161,65 @@ install_browser_service() {
 			return 1
 		fi
 
-		log_info "Enabling service..."
-		if ! run_user_systemctl "$target_user" "$user_uid" enable "$SERVICE_NAME"; then
-			log_error "$SERVICE_NAME konnte nicht aktiviert werden."
+		log_info "Enabling service: $service_name"
+		if ! run_user_systemctl "$target_user" "$user_uid" enable "$service_name"; then
+			log_error "$service_name konnte nicht aktiviert werden."
 			return 1
 		fi
 	else
-		log_info "Enabling service..."
-		if ! enable_user_service_without_session "$target_user" "$user_home"; then
-			log_error "$SERVICE_NAME konnte nicht aktiviert werden."
+		log_info "Enabling service: $service_name"
+		if ! enable_user_service_without_session "$target_user" "$user_home" "$service_name"; then
+			log_error "$service_name konnte nicht aktiviert werden."
 			return 1
 		fi
 		log_warn "User session not active; service installed and enabled, start after next login/boot"
 		return 0
 	fi
 
-	log_info "Starting service..."
-	if ! run_user_systemctl "$target_user" "$user_uid" restart "$SERVICE_NAME"; then
-		log_error "$SERVICE_NAME konnte nicht gestartet werden."
+	log_info "Starting service: $service_name"
+	if ! run_user_systemctl "$target_user" "$user_uid" restart "$service_name"; then
+		log_error "$service_name konnte nicht gestartet werden."
 		return 1
 	fi
 
-	log_info "Prüfe Status von $SERVICE_NAME."
-	if run_user_systemctl "$target_user" "$user_uid" is-active --quiet "$SERVICE_NAME"; then
-		log_success "$SERVICE_NAME läuft als User-Service."
+	log_info "Prüfe Status von $service_name."
+	if run_user_systemctl "$target_user" "$user_uid" is-active --quiet "$service_name"; then
+		log_success "$service_name läuft als User-Service."
 		return 0
 	fi
 
-	run_user_systemctl "$target_user" "$user_uid" status "$SERVICE_NAME" --no-pager || true
-	log_error "$SERVICE_NAME ist nicht aktiv."
+	run_user_systemctl "$target_user" "$user_uid" status "$service_name" --no-pager || true
+	log_error "$service_name ist nicht aktiv."
 	return 1
 }
 
+install_user_services() {
+	# Install and enable currently active kiosk-client user services.
+	target_user=$(detect_target_user)
+	user_home=$(get_user_home "$target_user")
+	user_uid=$(get_user_uid "$target_user")
+
+	for service_name in $ENABLED_USER_SERVICES; do
+		install_user_service "$target_user" "$user_home" "$user_uid" "$service_name"
+	done
+
+	for service_name in $PREPARED_USER_SERVICES; do
+		install_service_file "$target_user" "$user_home" "$service_name"
+		if [ -d "/run/user/$user_uid" ]; then
+			log_info "Reloading user daemon..."
+			if ! run_user_systemctl "$target_user" "$user_uid" daemon-reload; then
+				log_error "systemctl --user daemon-reload fehlgeschlagen."
+				return 1
+			fi
+		else
+			log_warn "User session not active; prepared service will be available after next login/boot"
+		fi
+		log_success "$service_name wurde vorbereitet, aber noch nicht aktiviert."
+	done
+}
+
 main() {
-	install_browser_service
+	install_user_services
 }
 
 if [ "${0##*/}" = "systemd.sh" ]; then
