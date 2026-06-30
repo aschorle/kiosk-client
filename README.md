@@ -182,6 +182,14 @@ GNOME und GDM bleiben installiert und dienen weiterhin als Fallback fuer Login u
 
 Der produktive Ablauf ist: Autologin -> systemd user service -> `kiosk-runtime.service` -> `start-cage.sh` -> Cage -> `start-browser.sh` -> Chromium -> konfigurierte URL.
 
+Native Kiosk Session
+
+Ab Version 0.8.1 meldet der Display Manager den Kiosk-Benutzer direkt in eine eigene Session `kiosk` an. Diese Session startet ausschliesslich `scripts/start-cage.sh`; Cage startet danach Chromium ueber `scripts/start-browser.sh`.
+
+GNOME und KDE bleiben installiert und koennen weiterhin als Fallback-Sessions im Display Manager ausgewaehlt werden. Es werden keine Fensterregeln, DISPLAY-Variablen, XAUTHORITY-Anpassungen, xhost-Freigaben oder Desktop-Hacks verwendet.
+
+Der native Ablauf ist: Boot -> Display Manager -> Autologin -> `kiosk` Session -> Cage -> Chromium -> konfigurierte URL. `kiosk-runtime.service` bleibt als installierte Fallback-Unit vorhanden, wird im nativen Sessionbetrieb aber nicht automatisch aktiviert.
+
 Neue Runtime Architektur
 
 Boot

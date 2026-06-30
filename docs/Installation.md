@@ -222,6 +222,61 @@ command -v cage
 cage -v
 ```
 
+Native Kiosk Session
+
+Ab Version 0.8.1 meldet der Display Manager den Kiosk-Benutzer direkt in eine eigene Session `kiosk` an. Diese Session startet nur `scripts/start-cage.sh`. Damit laeuft der kiosk-client nicht mehr innerhalb einer KDE-, Plasma-, GNOME- oder X11-Desktop-Sitzung.
+
+`kiosk-runtime.service` bleibt installiert, wird im nativen Sessionbetrieb aber nicht mehr automatisch aktiviert. So wird verhindert, dass Cage einmal durch den Display Manager und ein zweites Mal durch systemd gestartet wird.
+
+Unterstuetzte Display Manager:
+
+- GDM/GDM3
+- SDDM
+- LightDM
+
+Der Installer erkennt den installierten Display Manager automatisch ueber `/etc/X11/default-display-manager`, bekannte Konfigurationsverzeichnisse und installierte Display-Manager-Binaries. Die Session-Datei wird als Wayland-Session installiert:
+
+```text
+/usr/share/wayland-sessions/kiosk.desktop
+```
+
+Die Session startet:
+
+```text
+<repo>/scripts/start-cage.sh
+```
+
+Autologin-Session je Display Manager:
+
+- GDM/GDM3: `installer/session.sh` setzt den Autologin-Benutzer in `/etc/gdm3/daemon.conf` und die Session `kiosk` in `/var/lib/AccountsService/users/<user>`.
+- SDDM: `installer/session.sh` schreibt `/etc/sddm.conf.d/kiosk-client.conf` mit `User=<user>` und `Session=kiosk.desktop`.
+- LightDM: `installer/session.sh` schreibt `/etc/lightdm/lightdm.conf.d/50-kiosk-client.conf` mit `autologin-user=<user>` und `autologin-session=kiosk`.
+
+Der Installationsablauf bleibt:
+
+```bash
+sudo ./installer/install.sh
+```
+
+Fallback auf Plasma, GNOME oder eine andere vorhandene Desktop-Session:
+
+1. Autologin im Display Manager deaktivieren oder auf die gewuenschte Desktop-Session umstellen.
+2. Im grafischen Login-Bildschirm eine vorhandene Session wie Plasma oder GNOME auswaehlen.
+3. Die Datei `kiosk.desktop` kann installiert bleiben; sie ist nur eine zusaetzliche Session-Auswahl.
+
+Debugging-Befehle:
+
+```bash
+cat /etc/X11/default-display-manager
+ls -l /usr/share/wayland-sessions/kiosk.desktop
+cat /usr/share/wayland-sessions/kiosk.desktop
+cat /etc/gdm3/daemon.conf
+cat /var/lib/AccountsService/users/$USER
+cat /etc/sddm.conf.d/kiosk-client.conf
+cat /etc/lightdm/lightdm.conf.d/50-kiosk-client.conf
+journalctl -b
+```
+
 Phase 3
 
 Wayland/Cage wurde vorbereitet, ist jedoch bis zur Umstellung auf ein aktuelleres Chromium deaktiviert. Die aktuelle Radxa-Version von Chromium unterstützt `--ozone-platform=wayland` nicht zuverlässig. Deshalb läuft die Runtime in Version 0.3 weiterhin über X11, während Cage installiert bleibt und für Version 0.4 vorbereitet ist.

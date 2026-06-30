@@ -3,9 +3,10 @@
 # systemd user-service setup module for kiosk-client.
 #
 # Purpose:
-#   Installs the kiosk-client systemd user services. The productive appliance
-#   runtime is kiosk-runtime.service. kiosk-browser.service is kept only as a
-#   manual legacy/fallback service and is disabled during installation.
+#   Installs the kiosk-client systemd user services. In the native kiosk
+#   session architecture, only kiosk-agent.service is enabled. Runtime services
+#   remain installed for fallback but are disabled to avoid duplicate Cage or
+#   Chromium processes.
 
 set -eu
 
@@ -13,10 +14,10 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 ENABLED_USER_SERVICES="
 kiosk-agent.service
-kiosk-runtime.service
 "
 FALLBACK_USER_SERVICES="
 kiosk-browser.service
+kiosk-runtime.service
 "
 
 # shellcheck disable=SC1091
@@ -373,45 +374,6 @@ install_fallback_service() {
 	return 0
 }
 
-start_runtime_service() {
-	# Start the productive Cage runtime only when a graphical session exists.
-	target_user=$1
-	user_uid=$2
-	service_name=kiosk-runtime.service
-
-	if ! is_user_manager_available "$user_uid"; then
-		log_warn "User session not active; $service_name starts after next login/boot"
-		return 0
-	fi
-
-	log_info "Reloading user daemon..."
-	if ! run_user_systemctl "$target_user" "$user_uid" daemon-reload; then
-		log_error "systemctl --user daemon-reload fehlgeschlagen."
-		return 1
-	fi
-
-	if ! is_graphical_session_active "$target_user" "$user_uid"; then
-		log_warn "graphical-session.target ist nicht aktiv; $service_name startet mit der naechsten grafischen Anmeldung."
-		return 0
-	fi
-
-	log_info "Starting service: $service_name"
-	if ! run_user_systemctl "$target_user" "$user_uid" restart "$service_name"; then
-		log_error "$service_name konnte nicht gestartet werden."
-		return 1
-	fi
-
-	log_info "Pruefe Status von $service_name."
-	if run_user_systemctl "$target_user" "$user_uid" is-active --quiet "$service_name"; then
-		log_success "$service_name laeuft als produktive Appliance Runtime."
-		return 0
-	fi
-
-	run_user_systemctl "$target_user" "$user_uid" status "$service_name" --no-pager || true
-	log_error "$service_name ist nicht aktiv."
-	return 1
-}
-
 install_user_services() {
 	# Install and enable currently active kiosk-client user services.
 	target_user=$(detect_target_user)
@@ -430,7 +392,6 @@ install_user_services() {
 		install_fallback_service "$target_user" "$user_home" "$user_uid" "$service_name"
 	done
 
-	start_runtime_service "$target_user" "$user_uid"
 }
 
 main() {

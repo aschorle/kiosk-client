@@ -4,8 +4,8 @@
 #
 # Purpose:
 #   Performs the Radxa Rock 4C+ installation workflow for kiosk-client. After
-#   the base installation succeeds, this script dispatches the existing module
-#   scripts in a fixed order so the complete installation chain can be tested.
+#   the base installation succeeds, this script dispatches the module scripts
+#   in a fixed order.
 
 set -eu
 
@@ -56,13 +56,13 @@ ensure_radxa_board() {
 		return 0
 	fi
 
-	log_error "Dieses Skript ist nur für Radxa Rock 4C+ vorgesehen. Erkannt: $board."
+	log_error "Dieses Skript ist nur fuer Radxa Rock 4C+ vorgesehen. Erkannt: $board."
 	return 1
 }
 
 print_welcome() {
 	# Print a short greeting after all preflight checks have passed.
-	log_info "Starte Grundinstallation für kiosk-client auf Radxa Rock 4C+."
+	log_info "Starte Grundinstallation fuer kiosk-client auf Radxa Rock 4C+."
 	log_info "Installiert werden nur Systemupdates und gemeinsame Basispakete."
 }
 
@@ -121,22 +121,23 @@ run_module_phase() {
 
 install_radxa() {
 	# Execute the Radxa base installation in the required order.
-	run_step "Root-Rechte prüfen" require_root
-	run_step "Vorabprüfungen starten" run_preflight_checks
+	run_step "Root-Rechte pruefen" require_root
+	run_step "Vorabpruefungen starten" run_preflight_checks
 	run_step "Board erkennen" ensure_radxa_board
 	print_welcome
-	run_step "apt update ausführen" apt_update
-	run_step "apt full-upgrade ausführen" apt_full_upgrade
+	run_step "apt update ausfuehren" apt_update
+	run_step "apt full-upgrade ausfuehren" apt_full_upgrade
 	run_step "Gemeinsame Basispakete installieren" install_common_packages
 	log_success "Radxa-Grundinstallation erfolgreich abgeschlossen."
-	run_step "Browser-Modul ausführen" run_module_phase "Browser" "browser.sh"
-	run_step "Wayland-Modul ausführen" run_module_phase "Wayland" "wayland.sh"
-	run_step "Cage-Modul ausführen" run_module_phase "Cage" "cage.sh"
-	run_step "Systemd-Modul ausführen" run_module_phase "Systemd" "systemd.sh"
-	run_step "Autologin-Modul ausführen" run_module_phase "Autologin" "autologin.sh"
-	run_step "Power-Modul ausführen" run_module_phase "Power" "power.sh"
-	run_step "Network-Modul ausführen" run_module_phase "Network" "network.sh"
-	run_step "Cleanup-Modul ausführen" run_module_phase "Cleanup" "cleanup.sh"
+	run_step "Browser-Modul ausfuehren" run_module_phase "Browser" "browser.sh"
+	run_step "Wayland-Modul ausfuehren" run_module_phase "Wayland" "wayland.sh"
+	run_step "Cage-Modul ausfuehren" run_module_phase "Cage" "cage.sh"
+	run_step "Systemd-Modul ausfuehren" run_module_phase "Systemd" "systemd.sh"
+	run_step "Autologin-Modul ausfuehren" run_module_phase "Autologin" "autologin.sh"
+	run_step "Session-Modul ausfuehren" run_module_phase "Session" "session.sh"
+	run_step "Power-Modul ausfuehren" run_module_phase "Power" "power.sh"
+	run_step "Network-Modul ausfuehren" run_module_phase "Network" "network.sh"
+	run_step "Cleanup-Modul ausfuehren" run_module_phase "Cleanup" "cleanup.sh"
 	log_success "Radxa-Installationskette erfolgreich abgeschlossen."
 }
 
