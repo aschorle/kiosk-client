@@ -124,6 +124,12 @@ Ab Version 0.4.4 stellt der `kiosk-agent` die beim Start geladene Client-Konfigu
 
 Die API ist ausschließlich lesend. `config/client.conf` wird nicht verändert und für diese Route nicht erneut geöffnet. Wenn die Konfiguration beim Start nicht geladen oder nicht gültig war, antwortet der Agent mit HTTP 500 und einem JSON-Fehlerobjekt.
 
+Information API
+
+Ab Version 0.4.5 stellt `GET /api/info` allgemeine Agent-, Build-, Betriebssystem- und Board-Informationen als JSON bereit. Enthalten sind `agent_version`, `go_version`, `hostname`, `architecture`, `kernel`, `build_time`, `git_commit`, `board`, `os_name` und `os_version`.
+
+Die Werte werden ausschließlich lesend über Go-Standardbibliothek und vorhandene Statusfunktionen ermittelt. Wenn `build_time` oder `git_commit` beim Build nicht gesetzt wurden, gibt der Agent jeweils `unknown` zurück.
+
 Neue Runtime Architektur
 
 Boot

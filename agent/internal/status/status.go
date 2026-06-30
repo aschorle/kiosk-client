@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -12,6 +13,13 @@ import (
 
 	"github.com/aschorle/kiosk-client/agent/internal/browser"
 	"github.com/aschorle/kiosk-client/agent/internal/config"
+)
+
+const agentVersion = "0.4.5"
+
+var (
+	BuildTime = "unknown"
+	GitCommit = "unknown"
 )
 
 // Status is the public runtime status returned by the local HTTP API.
@@ -36,6 +44,20 @@ type Status struct {
 	DiskTotal       uint64 `json:"disk_total"`
 	DiskAvailable   uint64 `json:"disk_available"`
 	LoadAverage     string `json:"load_average"`
+}
+
+// Info is the public static and runtime information returned by /api/info.
+type Info struct {
+	AgentVersion string `json:"agent_version"`
+	GoVersion    string `json:"go_version"`
+	Hostname     string `json:"hostname"`
+	Architecture string `json:"architecture"`
+	Kernel       string `json:"kernel"`
+	BuildTime    string `json:"build_time"`
+	GitCommit    string `json:"git_commit"`
+	Board        string `json:"board"`
+	OSName       string `json:"os_name"`
+	OSVersion    string `json:"os_version"`
 }
 
 // Provider builds status responses from static configuration and local system
@@ -78,6 +100,24 @@ func (p Provider) Current() Status {
 		DiskTotal:       diskTotal(),
 		DiskAvailable:   diskAvailable(),
 		LoadAverage:     loadAverage(),
+	}
+}
+
+// Info returns general agent, OS, and board information.
+func (p Provider) Info() Info {
+	osName, osVersion := osRelease()
+
+	return Info{
+		AgentVersion: agentVersion,
+		GoVersion:    runtime.Version(),
+		Hostname:     hostname(),
+		Architecture: architecture(),
+		Kernel:       kernel(),
+		BuildTime:    valueOrUnknown(BuildTime),
+		GitCommit:    valueOrUnknown(GitCommit),
+		Board:        board(),
+		OSName:       osName,
+		OSVersion:    osVersion,
 	}
 }
 
@@ -254,6 +294,79 @@ func loadAverage() string {
 	}
 
 	return strings.Join(fields[:3], " ")
+}
+
+func board() string {
+	paths := []string{
+		"/proc/device-tree/model",
+		"/sys/firmware/devicetree/base/model",
+	}
+
+	for _, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		value := strings.Trim(strings.TrimSpace(string(content)), "\x00")
+		if value != "" {
+			return value
+		}
+	}
+
+	return "unknown"
+}
+
+func osRelease() (string, string) {
+	fields := readKeyValueFile("/etc/os-release")
+	name := fields["PRETTY_NAME"]
+	version := fields["VERSION_ID"]
+
+	if name == "" {
+		name = fields["NAME"]
+	}
+
+	if version == "" {
+		version = debianVersion()
+	}
+
+	return valueOrUnknown(name), valueOrUnknown(version)
+}
+
+func readKeyValueFile(path string) map[string]string {
+	result := make(map[string]string)
+
+	file, err := os.Open(filepath.Clean(path))
+	if err != nil {
+		return result
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+
+		result[strings.TrimSpace(key)] = strings.Trim(strings.TrimSpace(value), `"`)
+	}
+
+	return result
+}
+
+func valueOrUnknown(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "unknown"
+	}
+
+	return value
 }
 
 func charsToString(chars []int8) string {
