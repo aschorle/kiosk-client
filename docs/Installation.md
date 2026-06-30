@@ -76,6 +76,18 @@ Der Ablauf ist bewusst klein gehalten:
 
 In diesem Schritt werden noch kein Chromium, kein Cage, keine Wayland-Konfiguration, keine systemd-Services, kein Kiosk-Agent und kein Webinterface installiert oder eingerichtet.
 
+Go Runtime
+
+Der kiosk-client verwendet ab Version 0.4.0 einen Go-basierten `kiosk-agent`. Damit der Agent direkt auf dem Zielsystem gebaut werden kann, gehört `golang-go` zu den gemeinsamen Basispaketen.
+
+Nach:
+
+```bash
+sudo ./installer/install.sh
+```
+
+steht der Befehl `go` automatisch auf dem System zur Verfügung. Die Installation erfolgt idempotent über die bestehende Paketliste `COMMON_PACKAGES`; erneute Installer-Läufe installieren Go nicht doppelt, sondern halten das Paket lediglich vorhanden.
+
 Browser
 
 Chromium wird als Browser-Komponente verwendet, weil es unter Debian Bookworm verfügbar ist, moderne Webstandards unterstützt und später zuverlässig im Kioskmodus mit Wayland und Cage betrieben werden kann. Die Browser-Komponente liegt in `installer/browser.sh` und bleibt von der Board-Grundinstallation getrennt.

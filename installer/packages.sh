@@ -17,6 +17,7 @@ vim
 openssh-server
 ca-certificates
 network-manager
+golang-go
 "
 
 # Kiosk runtime packages for later browser/display phases.
