@@ -41,7 +41,7 @@ install_browser_service() {
 		return 1
 	fi
 
-	log_info "Installiere User-Service nach $SERVICE_TARGET."
+	log_info "Installing user service..."
 	if ! mkdir -p "$USER_SYSTEMD_DIR"; then
 		log_error "User-systemd-Verzeichnis konnte nicht erstellt werden: $USER_SYSTEMD_DIR"
 		return 1
@@ -52,19 +52,19 @@ install_browser_service() {
 		return 1
 	fi
 
-	log_info "Lade systemd User-Konfiguration neu."
+	log_info "Reloading user daemon..."
 	if ! systemctl --user daemon-reload; then
 		log_error "systemctl --user daemon-reload fehlgeschlagen."
 		return 1
 	fi
 
-	log_info "Aktiviere $SERVICE_NAME als User-Service."
+	log_info "Enabling service..."
 	if ! systemctl --user enable "$SERVICE_NAME"; then
 		log_error "$SERVICE_NAME konnte nicht aktiviert werden."
 		return 1
 	fi
 
-	log_info "Starte $SERVICE_NAME neu."
+	log_info "Starting service..."
 	if ! systemctl --user restart "$SERVICE_NAME"; then
 		log_error "$SERVICE_NAME konnte nicht gestartet werden."
 		return 1
