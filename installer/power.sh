@@ -49,24 +49,20 @@ get_user_uid() {
 }
 
 run_user_gsettings() {
-	# Apply gsettings for the target user. If a graphical user session is active,
-	# use its runtime directory. Otherwise use a temporary D-Bus session so the
-	# user's dconf database can still be updated during installation.
+	# Run gsettings against the target user's active D-Bus session.
 	target_user=$1
 	user_uid=$2
 	shift 2
 
-	if [ -d "/run/user/$user_uid" ]; then
-		sudo -u "$target_user" XDG_RUNTIME_DIR="/run/user/$user_uid" gsettings "$@"
+	if [ -S "/run/user/$user_uid/bus" ]; then
+		sudo -u "$target_user" \
+			XDG_RUNTIME_DIR="/run/user/$user_uid" \
+			DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$user_uid/bus" \
+			gsettings "$@"
 		return $?
 	fi
 
-	if command -v dbus-run-session >/dev/null 2>&1; then
-		sudo -u "$target_user" dbus-run-session -- gsettings "$@"
-		return $?
-	fi
-
-	log_warn "Keine aktive User-Session und dbus-run-session nicht verfügbar; GNOME Einstellung wird übersprungen."
+	log_warn "Keine Benutzer-DBus-Session verfügbar; GNOME gsettings werden übersprungen."
 	return 2
 }
 
@@ -78,23 +74,19 @@ set_user_gsetting() {
 	key=$4
 	value=$5
 
-	if ! writable=$(run_user_gsettings "$target_user" "$user_uid" writable "$schema" "$key" 2>/dev/null); then
-		log_warn "GNOME Einstellung nicht verfügbar: $schema $key"
-		return 0
-	fi
-
-	if [ "$writable" != "true" ]; then
-		log_warn "GNOME Einstellung ist nicht schreibbar: $schema $key"
-		return 0
-	fi
-
 	log_info "Setze GNOME Einstellung: $schema $key $value"
 	if run_user_gsettings "$target_user" "$user_uid" set "$schema" "$key" "$value"; then
+		if current_value=$(run_user_gsettings "$target_user" "$user_uid" get "$schema" "$key"); then
+			log_success "$key = $current_value"
+			return 0
+		fi
+
+		log_warn "GNOME Einstellung wurde gesetzt, konnte aber nicht verifiziert werden: $schema $key"
 		return 0
 	fi
 
-	log_error "GNOME Einstellung konnte nicht gesetzt werden: $schema $key"
-	return 1
+	log_warn "GNOME Einstellung konnte nicht gesetzt werden: $schema $key"
+	return 0
 }
 
 configure_gnome_power_settings() {
@@ -108,9 +100,14 @@ configure_gnome_power_settings() {
 		return 1
 	fi
 
-	set_user_gsetting "$target_user" "$user_uid" org.gnome.desktop.session idle-delay "uint32 0"
+	if [ ! -S "/run/user/$user_uid/bus" ]; then
+		log_warn "Keine Benutzer-DBus-Session verfügbar; GNOME gsettings werden nicht angewendet."
+		return 0
+	fi
+
 	set_user_gsetting "$target_user" "$user_uid" org.gnome.desktop.screensaver lock-enabled false
 	set_user_gsetting "$target_user" "$user_uid" org.gnome.desktop.screensaver idle-activation-enabled false
+	set_user_gsetting "$target_user" "$user_uid" org.gnome.desktop.session idle-delay "uint32 0"
 	set_user_gsetting "$target_user" "$user_uid" org.gnome.settings-daemon.plugins.power idle-dim false
 	set_user_gsetting "$target_user" "$user_uid" org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type "'nothing'"
 	set_user_gsetting "$target_user" "$user_uid" org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type "'nothing'"
