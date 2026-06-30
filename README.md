@@ -94,6 +94,16 @@ Version 0.4.0
 
 - Runtime Wayland/Cage
 
+Version 0.4.1
+
+- Browser Manager Monitoring
+
+Browser Manager
+
+Der `kiosk-agent` übernimmt ab Version 0.4.1 die lesende Überwachung des Chromium-Browsers. Er ermittelt, ob der Browser läuft, welche PID verwendet wird, welcher Executable-Pfad aktiv ist, welche Version gefunden wird und mit welcher Kommandozeile Chromium gestartet wurde.
+
+Der Agent startet, stoppt und beendet Chromium in dieser Phase nicht. Eine automatische Wiederherstellung oder ein Neustart des Browsers ist erst für Version 0.5 vorgesehen.
+
 Neue Runtime Architektur
 
 Boot
