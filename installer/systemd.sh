@@ -74,15 +74,69 @@ run_user_systemctl() {
 	sudo -u "$target_user" XDG_RUNTIME_DIR="/run/user/$user_uid" systemctl --user "$@"
 }
 
+get_service_wanted_by() {
+	# Read the first WantedBy= target from the service's [Install] section.
+	# This keeps manual fallback enabling aligned with systemctl --user enable.
+	service_name=$1
+	service_source=$PROJECT_DIR/systemd/user/$service_name
+
+	wanted_by=$(awk -F '=' '
+		/^[[:space:]]*\[Install\][[:space:]]*$/ {
+			in_install = 1
+			next
+		}
+		/^[[:space:]]*\[/ {
+			in_install = 0
+		}
+		in_install && /^[[:space:]]*WantedBy[[:space:]]*=/ {
+			value = $2
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+			split(value, targets, /[[:space:]]+/)
+			print targets[1]
+			exit
+		}
+	' "$service_source")
+
+	if [ "$wanted_by" != "" ]; then
+		printf '%s\n' "$wanted_by"
+		return 0
+	fi
+
+	log_error "WantedBy= fehlt in Service-Datei: $service_source"
+	return 1
+}
+
+is_user_manager_available() {
+	# The systemd user manager is reachable only while /run/user/<uid> exists.
+	user_uid=$1
+
+	[ -d "/run/user/$user_uid" ]
+}
+
+is_graphical_session_active() {
+	# Verify that the service is restarted only inside an active graphical
+	# session. This avoids detached Chromium processes after manual installer
+	# runs from SSH or a non-graphical context.
+	target_user=$1
+	user_uid=$2
+
+	run_user_systemctl "$target_user" "$user_uid" is-active --quiet graphical-session.target
+}
+
 enable_user_service_without_session() {
-	# Enable the user service by creating the standard default.target.wants link.
+	# Enable the user service by creating the WantedBy target link from the unit.
 	# This is used when no active user session exists yet and systemctl --user
 	# cannot talk to the user manager.
 	target_user=$1
 	user_home=$2
 	service_name=$3
+
+	if ! wanted_by=$(get_service_wanted_by "$service_name"); then
+		return 1
+	fi
+
 	user_systemd_dir=$user_home/.config/systemd/user
-	wants_dir=$user_systemd_dir/default.target.wants
+	wants_dir=$user_systemd_dir/$wanted_by.wants
 	service_target=$user_systemd_dir/$service_name
 	wants_link=$wants_dir/$service_name
 
@@ -92,13 +146,42 @@ enable_user_service_without_session() {
 	fi
 
 	if [ ! -e "$wants_link" ] && ! ln -s "../$service_name" "$wants_link"; then
-		log_error "$service_name konnte nicht für default.target aktiviert werden."
+		log_error "$service_name konnte nicht für $wanted_by aktiviert werden."
 		return 1
 	fi
 
 	if ! chown -h "$target_user:$target_user" "$wants_dir" "$wants_link" "$service_target"; then
 		log_error "Besitzrechte für die User-Service-Aktivierung konnten nicht gesetzt werden."
 		return 1
+	fi
+
+	return 0
+}
+
+remove_legacy_default_target_link() {
+	# Older kiosk-client versions enabled kiosk-browser.service below
+	# default.target. That can start Chromium before the graphical session is
+	# ready. Remove only that legacy symlink and leave all other files untouched.
+	target_user=$1
+	user_home=$2
+	service_name=$3
+	legacy_link=$user_home/.config/systemd/user/default.target.wants/$service_name
+
+	if [ "$service_name" != "kiosk-browser.service" ]; then
+		return 0
+	fi
+
+	if [ -L "$legacy_link" ]; then
+		log_info "Entferne alten default.target-Link: $legacy_link"
+		if ! rm "$legacy_link"; then
+			log_error "Alter default.target-Link konnte nicht entfernt werden: $legacy_link"
+			return 1
+		fi
+		return 0
+	fi
+
+	if [ -e "$legacy_link" ]; then
+		log_warn "Alter default.target-Eintrag ist kein Symlink und wurde nicht entfernt: $legacy_link"
 	fi
 
 	return 0
@@ -154,7 +237,11 @@ install_user_service() {
 		return 1
 	fi
 
-	if [ -d "/run/user/$user_uid" ]; then
+	if ! remove_legacy_default_target_link "$target_user" "$user_home" "$service_name"; then
+		return 1
+	fi
+
+	if is_user_manager_available "$user_uid"; then
 		log_info "Reloading user daemon..."
 		if ! run_user_systemctl "$target_user" "$user_uid" daemon-reload; then
 			log_error "systemctl --user daemon-reload fehlgeschlagen."
@@ -173,6 +260,11 @@ install_user_service() {
 			return 1
 		fi
 		log_warn "User session not active; service installed and enabled, start after next login/boot"
+		return 0
+	fi
+
+	if ! is_graphical_session_active "$target_user" "$user_uid"; then
+		log_warn "graphical-session.target ist nicht aktiv; $service_name startet mit der nächsten grafischen Anmeldung."
 		return 0
 	fi
 
@@ -205,7 +297,7 @@ install_user_services() {
 
 	for service_name in $PREPARED_USER_SERVICES; do
 		install_service_file "$target_user" "$user_home" "$service_name"
-		if [ -d "/run/user/$user_uid" ]; then
+		if is_user_manager_available "$user_uid"; then
 			log_info "Reloading user daemon..."
 			if ! run_user_systemctl "$target_user" "$user_uid" daemon-reload; then
 				log_error "systemctl --user daemon-reload fehlgeschlagen."

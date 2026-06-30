@@ -6,16 +6,21 @@
 
 [Unit]
 Description=kiosk-client Chromium browser
+# The browser is a graphical workload and must be bound to the real graphical
+# user session. Starting it from default.target is too early on GDM/GNOME and
+# can leave Chromium detached from the active display after restarts.
 After=graphical-session.target
+BindsTo=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
 # Runtime boundary: this service owns the browser process. A later Cage runtime
 # will wrap this same browser launcher without moving URL configuration into
 # systemd.
+WorkingDirectory=%h/kiosk-client
 ExecStart=%h/kiosk-client/scripts/start-browser.sh
 Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target
