@@ -102,6 +102,8 @@ Browser Manager
 
 Der `kiosk-agent` übernimmt ab Version 0.4.1 die lesende Überwachung des Chromium-Browsers. Er ermittelt, ob der Browser läuft, welche PID verwendet wird, welcher Executable-Pfad aktiv ist, welche Version gefunden wird und mit welcher Kommandozeile Chromium gestartet wurde.
 
+Die Browser-Version wird zuerst über bekannte Debian-Pakete wie `chromium` und `chromium-x11` ermittelt. Falls diese Paketinformationen nicht verfügbar sind, fragt der Agent distributionsunabhängig das tatsächlich verwendete Chromium-Binary mit `--version` ab.
+
 Der Agent startet, stoppt und beendet Chromium in dieser Phase nicht. Eine automatische Wiederherstellung oder ein Neustart des Browsers ist erst für Version 0.5 vorgesehen.
 
 Neue Runtime Architektur

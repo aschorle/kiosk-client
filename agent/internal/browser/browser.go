@@ -3,6 +3,7 @@ package browser
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -78,7 +79,7 @@ func (r Runtime) Version() string {
 		}
 	}
 
-	return ""
+	return readExecutableVersion(r.Executable())
 }
 
 // Executable returns the executable path of the running browser process.
@@ -185,6 +186,10 @@ func (r Runtime) packageNames() []string {
 		names = append(names, "chromium")
 	}
 
+	if name != "chromium-x11" {
+		names = append(names, "chromium-x11")
+	}
+
 	if name != "chromium-browser" {
 		names = append(names, "chromium-browser")
 	}
@@ -211,6 +216,19 @@ func readCommandLine(path string) (string, error) {
 	}
 
 	return strings.Join(args, " "), nil
+}
+
+func readExecutableVersion(executable string) string {
+	if executable == "" {
+		return ""
+	}
+
+	output, err := exec.Command(executable, "--version").Output()
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(string(output))
 }
 
 func readPackageVersion(path string, packageName string) string {
