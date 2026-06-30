@@ -5,7 +5,7 @@
 # Purpose:
 #   Performs the Radxa Rock 4C+ Appliance installation workflow for
 #   kiosk-client. This file only verifies the target board and delegates to the
-#   minimal Appliance installer. It does not run Desktop Edition modules.
+#   minimal Appliance installer.
 
 set -eu
 
@@ -51,7 +51,7 @@ ensure_radxa_board() {
 
 print_welcome() {
 	log_info "Starte Appliance-Installation fuer kiosk-client auf Radxa Rock 4C+."
-	log_info "Es werden keine Desktop-Komponenten installiert oder konfiguriert."
+	log_info "Es werden keine grafischen Vollumgebungen installiert oder konfiguriert."
 }
 
 run_appliance_installer() {

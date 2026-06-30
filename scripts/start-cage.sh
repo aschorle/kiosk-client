@@ -3,8 +3,8 @@
 # Start the Cage runtime for kiosk-client.
 #
 # Purpose:
-#   Starts Cage and runs scripts/start-browser.sh inside it. GNOME/GDM can stay
-#   installed as fallback, while this script owns the appliance runtime path.
+#   Starts Cage and runs scripts/start-browser.sh inside it. This script owns
+#   the appliance runtime path.
 
 set -eu
 

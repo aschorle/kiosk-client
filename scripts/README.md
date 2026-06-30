@@ -1,10 +1,8 @@
-Scripts (Platzhalter)
-======================
+# Scripts
 
-In `scripts/` werden Hilfs- und Wartungsskripte abgelegt, z. B. für:
+Produktive Skripte:
 
-- Log-Rotation/Archivierung
-- Debug-Informationen sammeln
-- Manuelle Konfigurationshilfen
+- `start-browser.sh`
+- `start-cage.sh`
 
-Aktuell sind hier nur Platzhalterdateien; produktive Skripte werden später ergänzt.
+`start-cage.sh` startet Cage. Cage startet `start-browser.sh`. Das Browser-Skript liest `config/client.conf` und ersetzt sich durch Chromium.

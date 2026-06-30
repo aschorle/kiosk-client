@@ -1,9 +1,9 @@
-Browser / Kiosk (Platzhalter)
-=============================
+# Browser Runtime
 
-Der Browser-Start erfolgt ohne Desktop unter Wayland. Erwartete Komponenten:
+Chromium wird innerhalb von Cage gestartet und zeigt die konfigurierte URL im Kioskmodus.
 
-- Cage (Wayland compositor)
-- Chromium im Kioskmodus mit Wayland-Backend
+Erwartete Komponenten:
 
-Start-Parameter und -Skripte werden später in `systemd/` bzw. `scripts/` abgelegt.
+- `chromium`
+- `cage`
+- `dbus-run-session`

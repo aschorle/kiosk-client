@@ -1,10 +1,21 @@
-Installer (Platzhalter)
-=======================
+# Installer
 
-Ziel: Für jedes unterstützte Board (Radxa Rock 4C+, Raspberry Pi 4) ein eigenes, geprüftes Installationsskript bereitzustellen, das:
+Der Installer kennt nur den Appliance-Pfad.
 
-- notwendige Pakete installiert
-- Hardware-spezifische Anpassungen vornimmt
-- systemd-Units installiert
+Einstieg:
 
-Konkrete Installationsskripte werden später ergänzt.
+```bash
+sudo KIOSK_USER=rock ./installer/install.sh
+```
+
+Aktive Module:
+
+- `install-common.sh`
+- `install.sh`
+- `install-radxa.sh`
+- `install-rpi.sh`
+- `appliance.sh`
+- `packages.sh`
+- `verify.sh`
+- `runtime.sh`
+- `tty.sh`

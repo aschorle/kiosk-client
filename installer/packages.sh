@@ -20,8 +20,7 @@ dbus
 dbus-user-session
 "
 
-# Legacy package groups are kept for the frozen Desktop Edition only. They are
-# intentionally empty in the Appliance installer path.
+# Deprecated package groups are intentionally empty.
 COMMON_PACKAGES=""
 KIOSK_PACKAGES="$APPLIANCE_PACKAGES"
 

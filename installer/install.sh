@@ -6,7 +6,7 @@
 #   This script is the single supported entry point for the Appliance Edition.
 #   It performs only global checks and board selection, then delegates all
 #   board-specific installation work to the matching Appliance installer.
-#   No Desktop Edition modules are run from this path.
+#   Only Appliance Edition modules are run from this path.
 
 set -eu
 

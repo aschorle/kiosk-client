@@ -4,7 +4,7 @@
 #
 # Purpose:
 #   Installs and enables the Appliance Edition systemd user services. This
-#   runtime does not require a display manager or desktop environment.
+#   runtime does not require a graphical login manager or full graphical environment.
 
 set -eu
 
@@ -16,6 +16,7 @@ kiosk-appliance.service
 "
 AGENT_BINARY="$PROJECT_DIR/kiosk-agent"
 AGENT_SOURCE="./agent/cmd/kiosk-agent"
+AGENT_INSTALL_MODE=release
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/install-common.sh"
@@ -76,25 +77,32 @@ ensure_agent_binary() {
 	# Ensure kiosk-agent exists before installing or enabling its service.
 	kiosk_user=$1
 
-	if [ -x "$AGENT_BINARY" ]; then
-		log_success "kiosk-agent Binary vorhanden: $AGENT_BINARY"
-		return 0
-	fi
+	if command -v go >/dev/null 2>&1; then
+		AGENT_INSTALL_MODE=development
+		log_info "Development Mode: Baue kiosk-agent aus vorhandenen Quellen."
+		if ! (cd "$PROJECT_DIR" && go build -o "$AGENT_BINARY" "$AGENT_SOURCE"); then
+			log_error "kiosk-agent konnte nicht gebaut werden."
+			return 1
+		fi
+	else
+		log_info "Release Mode: Go ist nicht installiert; verwende vorhandenes kiosk-agent Binary."
+		if [ -x "$AGENT_BINARY" ]; then
+			log_success "kiosk-agent Binary vorhanden: $AGENT_BINARY"
+			return 0
+		fi
 
-	if [ -e "$AGENT_BINARY" ] && [ ! -x "$AGENT_BINARY" ]; then
-		log_error "kiosk-agent existiert, ist aber nicht ausfuehrbar: $AGENT_BINARY"
-		return 1
-	fi
+		if [ -e "$AGENT_BINARY" ]; then
+			log_error "kiosk-agent existiert, ist aber nicht ausfuehrbar: $AGENT_BINARY"
+			return 1
+		fi
 
-	if ! command -v go >/dev/null 2>&1; then
 		log_error "kiosk-agent fehlt: $AGENT_BINARY"
-		log_error "Go ist nicht installiert; kiosk-agent kann nicht gebaut werden."
+		log_error "Go ist nicht installiert; bitte ein Release mit vorhandenem kiosk-agent Binary verwenden."
 		return 1
 	fi
 
-	log_info "Baue kiosk-agent aus vorhandenen Quellen."
-	if ! (cd "$PROJECT_DIR" && go build -o "$AGENT_BINARY" "$AGENT_SOURCE"); then
-		log_error "kiosk-agent konnte nicht gebaut werden."
+	if [ ! -x "$AGENT_BINARY" ] && [ -e "$AGENT_BINARY" ]; then
+		log_error "kiosk-agent existiert, ist aber nicht ausfuehrbar: $AGENT_BINARY"
 		return 1
 	fi
 
@@ -196,6 +204,9 @@ install_appliance_runtime() {
 	if [ -d "/run/user/$user_uid" ]; then
 		log_info "Reloading user daemon..."
 		run_user_systemctl "$kiosk_user" "$user_uid" daemon-reload
+		if [ "$AGENT_INSTALL_MODE" = "development" ]; then
+			log_success "Development build completed."
+		fi
 		for service_name in $APPLIANCE_USER_SERVICES; do
 			log_info "Enabling service: $service_name"
 			run_user_systemctl "$kiosk_user" "$user_uid" enable "$service_name"
@@ -204,6 +215,9 @@ install_appliance_runtime() {
 		for service_name in $APPLIANCE_USER_SERVICES; do
 			enable_service_without_session "$kiosk_user" "$user_home" "$service_name"
 		done
+		if [ "$AGENT_INSTALL_MODE" = "development" ]; then
+			log_success "Development build completed."
+		fi
 		log_warn "User session not active; appliance services start after tty1 autologin."
 	fi
 

@@ -183,9 +183,9 @@ func read(path string) (Config, error) {
 	}
 
 	cfg := Config{
-		URL:       valueOrDefault(values["URL"], defaultURL),
+		URL:       valueOrDefaultValue(values["URL"], defaultURL),
 		DeviceID:  values["DEVICE_ID"],
-		Browser:   valueOrDefault(values["BROWSER"], defaultBrowser),
+		Browser:   valueOrDefaultValue(values["BROWSER"], defaultBrowser),
 		AuthToken: values["AUTH_TOKEN"],
 	}
 
@@ -200,9 +200,9 @@ func defaultConfig() Config {
 	}
 }
 
-func valueOrDefault(value string, fallback string) string {
+func valueOrDefaultValue(value string, defaultValue string) string {
 	if value == "" {
-		return fallback
+		return defaultValue
 	}
 
 	return value

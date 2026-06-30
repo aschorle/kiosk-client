@@ -189,11 +189,6 @@ func (s Server) handleConfigPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := browser.Restart(); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-
 	writeOK(w)
 }
 
@@ -260,11 +255,6 @@ func (s Server) handleBrowserReload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := browser.ReloadService(); err != nil {
-		if errors.Is(err, browser.ErrReloadNotSupported) {
-			writeError(w, http.StatusNotImplemented, err)
-			return
-		}
-
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}

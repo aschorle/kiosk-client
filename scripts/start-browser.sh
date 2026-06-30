@@ -59,8 +59,8 @@ read_config_value() {
 
 find_chromium() {
 	# Resolve the Chromium executable path.
-	# Debian Bookworm uses "chromium"; "chromium-browser" is accepted as a
-	# compatibility fallback for images with alternate package naming.
+	# Debian Bookworm uses "chromium"; "chromium-browser" is accepted for
+	# images with alternate package naming.
 	browser_command=$(read_config_value "BROWSER")
 
 	if [ "$browser_command" = "" ]; then
@@ -221,7 +221,6 @@ start_browser() {
 		--no-first-run \
 		--disable-session-crashed-bubble \
 		--disable-infobars \
-		--disable-gpu \
 		--disable-crash-reporter \
 		--disable-breakpad \
 		--disable-background-networking \

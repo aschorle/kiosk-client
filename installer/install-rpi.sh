@@ -5,7 +5,7 @@
 # Purpose:
 #   Performs the Raspberry Pi 4 Appliance installation workflow for
 #   kiosk-client. This file only verifies the target board and delegates to the
-#   minimal Appliance installer. It does not run Desktop Edition modules.
+#   minimal Appliance installer.
 
 set -eu
 

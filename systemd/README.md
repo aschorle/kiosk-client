@@ -1,10 +1,8 @@
-Systemd unit templates (Platzhalter)
-====================================
+# systemd
 
-Geplante Services:
+Produktive User-Units:
 
-- kiosk.service
-- kiosk-agent.service
-- kiosk-watchdog.service
+- `kiosk-agent.service`
+- `kiosk-appliance.service`
 
-Hinweis: Die konkreten Unit-Dateien werden später mit genauen ExecStart-Pfaden und Abhängigkeiten ergänzt. Units sollten in `/etc/systemd/system/` installiert und mit `systemctl daemon-reload` aktiviert werden.
+Beide Units laufen im systemd User Manager des Kiosk-Benutzers und werden fuer `default.target` aktiviert.

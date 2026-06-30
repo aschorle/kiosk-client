@@ -3,7 +3,7 @@ package browser
 import (
 	"bytes"
 	"context"
-	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -17,10 +17,9 @@ import (
 const (
 	defaultName          = "chromium"
 	dpkgStatus          = "/var/lib/dpkg/status"
-	serviceName          = "kiosk-browser.service"
+	serviceName          = "kiosk-appliance.service"
 	systemctl            = "systemctl"
 	userSystemctl        = "--user"
-	reloadProperty       = "CanReload"
 	watchdogStateHealthy  = "healthy"
 	watchdogStateLimited  = "limited"
 	watchdogStateDisabled = "disabled"
@@ -28,10 +27,6 @@ const (
 	restartLimitWindow    = 10 * time.Minute
 	restartHistoryLimit   = 10
 )
-
-// ErrReloadNotSupported is returned when systemd reports that the browser
-// service has no reload action.
-var ErrReloadNotSupported = errors.New("reload not supported")
 
 var watchdogMetrics struct {
 	sync.Mutex
@@ -86,28 +81,27 @@ func CommandLine() string {
 	return NewRuntime(defaultName).CommandLine()
 }
 
-// Restart restarts the browser through the systemd user manager.
+// Restart restarts the appliance runtime through the systemd user manager.
 func Restart() error {
 	return RestartService()
 }
 
-// RestartService restarts the browser through the systemd user manager.
+// RestartService restarts the appliance runtime through the systemd user manager.
 func RestartService() error {
-	return runUserSystemctl("restart", serviceName)
+	if err := runUserSystemctl("restart", serviceName); err != nil {
+		return fmt.Errorf("appliance runtime restart failed: %w", err)
+	}
+
+	return nil
 }
 
-// ReloadService reloads the browser service when systemd reports support for it.
+// ReloadService refreshes the kiosk by restarting the appliance runtime.
 func ReloadService() error {
-	canReload, err := serviceCanReload()
-	if err != nil {
-		return err
+	if err := runUserSystemctl("restart", serviceName); err != nil {
+		return fmt.Errorf("appliance runtime reload failed: %w", err)
 	}
 
-	if !canReload {
-		return ErrReloadNotSupported
-	}
-
-	return runUserSystemctl("reload", serviceName)
+	return nil
 }
 
 // RestartCount returns the number of watchdog-triggered browser restarts.
@@ -194,7 +188,7 @@ func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string
 
 				restartedAt := now.Format(time.RFC3339)
 				recordRestart(now, restartedAt, reason)
-				logf("browser watchdog restart: kiosk-browser.service at %s reason=%s", restartedAt, reason)
+				logf("browser watchdog restart: kiosk-appliance.service at %s reason=%s", restartedAt, reason)
 			}
 		}
 	}()
@@ -336,10 +330,6 @@ func (r Runtime) packageNames() []string {
 		names = append(names, "chromium")
 	}
 
-	if name != "chromium-x11" {
-		names = append(names, "chromium-x11")
-	}
-
 	if name != "chromium-browser" {
 		names = append(names, "chromium-browser")
 	}
@@ -379,15 +369,6 @@ func readExecutableVersion(executable string) string {
 	}
 
 	return strings.TrimSpace(string(output))
-}
-
-func serviceCanReload() (bool, error) {
-	output, err := exec.Command(systemctl, userSystemctl, "show", serviceName, "-p", reloadProperty, "--value").Output()
-	if err != nil {
-		return false, err
-	}
-
-	return strings.TrimSpace(string(output)) == "yes", nil
 }
 
 func runUserSystemctl(args ...string) error {

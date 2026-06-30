@@ -4,7 +4,7 @@
 #
 # Purpose:
 #   Configures systemd getty autologin on tty1 for the kiosk user. This module
-#   does not touch GDM, SDDM, LightDM, or any desktop session configuration.
+#   does not touch graphical login manager or session configuration.
 
 set -eu
 

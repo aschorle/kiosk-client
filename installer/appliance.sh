@@ -4,8 +4,7 @@
 #
 # Purpose:
 #   Installs the minimal kiosk-client appliance profile without a display
-#   manager or desktop environment. The existing Desktop Edition installer is
-#   not used or modified by this profile.
+#   manager or full graphical environment.
 
 set -eu
 

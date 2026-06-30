@@ -1,7 +1,7 @@
 # kiosk-client appliance runtime user service
 #
 # This service is used by the Appliance Edition without a display manager or
-# desktop environment. The user is logged in on tty1 by systemd getty autologin.
+# full graphical environment. The user is logged in on tty1 by systemd getty autologin.
 # The user manager then starts dbus-run-session, Cage, and Chromium.
 
 [Unit]

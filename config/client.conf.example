@@ -1,6 +1,6 @@
 # Beispiel-Konfigurationsdatei für kiosk-client
 
-# Die URL, die im Kiosk-Browser angezeigt wird
+# Die URL, die im Kiosk angezeigt wird
 URL=https://display.example.local
 
 # Eindeutige Gerätekennung
