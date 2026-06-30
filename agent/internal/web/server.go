@@ -35,6 +35,7 @@ func (s Server) Routes() []Route {
 	return []Route{
 		{Method: http.MethodGet, Path: "/"},
 		{Method: http.MethodGet, Path: "/api/config"},
+		{Method: http.MethodGet, Path: "/api/health"},
 		{Method: http.MethodGet, Path: "/api/info"},
 		{Method: http.MethodGet, Path: "/api/status"},
 		{Method: http.MethodPost, Path: "/api/browser/reload"},
@@ -56,6 +57,7 @@ func (s Server) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleRoot)
 	mux.HandleFunc("/api/config", s.handleConfig)
+	mux.HandleFunc("/api/health", s.handleHealth)
 	mux.HandleFunc("/api/info", s.handleInfo)
 	mux.HandleFunc("/api/status", s.handleStatus)
 	mux.HandleFunc("/api/browser/reload", s.handleBrowserReload)
@@ -96,6 +98,20 @@ func (s Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(cfg); err != nil {
 		http.Error(w, "failed to encode config", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(s.provider.Health()); err != nil {
+		http.Error(w, "failed to encode health", http.StatusInternalServerError)
 		return
 	}
 }

@@ -150,6 +150,12 @@ Ab Version 0.5.1 begrenzt der Watchdog automatische Browser-Neustarts auf maxima
 
 Der Status liefert zusätzlich `browser_watchdog_state` mit den Zuständen `healthy`, `limited` und `disabled` sowie `browser_restart_history` mit den letzten zehn erfolgreichen Watchdog-Restarts. Jeder Eintrag enthält die UTC-Zeit und den Grund des Neustarts.
 
+Health API
+
+Ab Version 0.5.2 liefert `GET /api/health` den zusammengefassten Systemzustand als JSON. Die Antwort enthält `status` mit einem der Werte `healthy`, `degraded` oder `error`.
+
+`healthy` bedeutet, dass der Browser läuft und der Watchdog im Zustand `healthy` ist. `degraded` bedeutet, dass der Browser läuft, der Watchdog aber limitiert oder nicht vollständig gesund ist. `error` bedeutet, dass der Browser nicht läuft.
+
 Neue Runtime Architektur
 
 Boot

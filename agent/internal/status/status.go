@@ -64,6 +64,11 @@ type Info struct {
 	OSVersion    string `json:"os_version"`
 }
 
+// Health is the summarized system health returned by /api/health.
+type Health struct {
+	Status string `json:"status"`
+}
+
 // Provider builds status responses from static configuration and local system
 // information.
 type Provider struct {
@@ -109,6 +114,24 @@ func (p Provider) Current() Status {
 		DiskAvailable:         diskAvailable(),
 		LoadAverage:           loadAverage(),
 	}
+}
+
+// Health returns the summarized system health.
+func (p Provider) Health() Health {
+	browserRuntime := browser.NewRuntime(p.config.Browser)
+	if !browserRuntime.IsRunning() {
+		return Health{Status: "error"}
+	}
+
+	if browser.WatchdogState() == "limited" {
+		return Health{Status: "degraded"}
+	}
+
+	if browser.WatchdogState() == "healthy" {
+		return Health{Status: "healthy"}
+	}
+
+	return Health{Status: "degraded"}
 }
 
 // Info returns general agent, OS, and board information.
