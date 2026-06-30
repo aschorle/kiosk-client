@@ -107,6 +107,11 @@ func (s Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.URL.Path == "/welcome" {
+		s.handleWelcome(w, r)
+		return
+	}
+
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
