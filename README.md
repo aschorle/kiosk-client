@@ -162,6 +162,18 @@ Ab Version 0.5.3 liefert `GET /api/metrics` Laufzeitmetriken des Agents als JSON
 
 Jeder HTTP-Request erhöht `http_requests_total`. Jeder Watchdog-Durchlauf erhöht `watchdog_checks`. Die Browser-Laufzeit wird lesend über die aktuelle Browser-PID und die Prozessstartzeit aus `/proc` bestimmt; wenn sie nicht ermittelt werden kann, wird `browser_uptime_seconds` mit `0` ausgeliefert.
 
+Management API
+
+Ab Version 0.6.0 stellt der `kiosk-agent` eine vollständige lokale Management-API bereit. Lesende Endpunkte sind `GET /api/status`, `GET /api/info`, `GET /api/config`, `GET /api/metrics` und `GET /api/health`. Browseraktionen laufen weiterhin ausschließlich über systemd User Services mit `POST /api/browser/restart` und `POST /api/browser/reload`.
+
+Die Konfiguration kann über `PUT /api/config` aktualisiert werden. Der Request-Body ist JSON mit `url`, `browser` und `device_id`. `url` darf nicht leer sein und `browser` ist aktuell ausschließlich mit dem Wert `chromium` gültig. Nach erfolgreichem Schreiben von `config/client.conf` startet der Agent den Browser über `Browser.Restart()` neu und antwortet mit `{"status":"ok"}`.
+
+Authentication
+
+Schreibende API-Zugriffe können über `AUTH_TOKEN` in `config/client.conf` geschützt werden. Ist `AUTH_TOKEN` leer, sind alle API-Zugriffe erlaubt. Ist ein Token gesetzt, müssen alle `POST`- und `PUT`-Requests den Header `Authorization: Bearer <token>` senden.
+
+Fehlt der Header oder passt der Token nicht, antwortet der Agent mit HTTP 401 und einem JSON-Fehlerobjekt. Lesende `GET`-Endpunkte bleiben ohne Token erreichbar.
+
 Neue Runtime Architektur
 
 Boot

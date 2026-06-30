@@ -149,12 +149,13 @@ func StartWatchdogCheckCounter(ctx context.Context, interval time.Duration) <-ch
 
 // Current returns the current kiosk-client status.
 func (p Provider) Current() Status {
-	browserRuntime := browser.NewRuntime(p.config.Browser)
+	cfg := p.currentConfig()
+	browserRuntime := browser.NewRuntime(cfg.Browser)
 
 	return Status{
 		Hostname:              hostname(),
 		IP:                    primaryIP(),
-		URL:                   p.config.URL,
+		URL:                   cfg.URL,
 		Browser:               browserRuntime.Name,
 		Version:               p.version,
 		BrowserRunning:        browserRuntime.IsRunning(),
@@ -198,7 +199,8 @@ func (p Provider) Metrics() Metrics {
 
 // Health returns the summarized system health.
 func (p Provider) Health() Health {
-	browserRuntime := browser.NewRuntime(p.config.Browser)
+	cfg := p.currentConfig()
+	browserRuntime := browser.NewRuntime(cfg.Browser)
 	if !browserRuntime.IsRunning() {
 		return Health{Status: "error"}
 	}
@@ -212,6 +214,15 @@ func (p Provider) Health() Health {
 	}
 
 	return Health{Status: "degraded"}
+}
+
+func (p Provider) currentConfig() config.Config {
+	cfg, err := config.Current()
+	if err != nil {
+		return p.config
+	}
+
+	return cfg
 }
 
 // Info returns general agent, OS, and board information.

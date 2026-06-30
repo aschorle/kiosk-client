@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/aschorle/kiosk-client/agent/internal/browser"
@@ -35,6 +36,7 @@ func (s Server) Routes() []Route {
 	return []Route{
 		{Method: http.MethodGet, Path: "/"},
 		{Method: http.MethodGet, Path: "/api/config"},
+		{Method: http.MethodPut, Path: "/api/config"},
 		{Method: http.MethodGet, Path: "/api/health"},
 		{Method: http.MethodGet, Path: "/api/info"},
 		{Method: http.MethodGet, Path: "/api/metrics"},
@@ -48,7 +50,7 @@ func (s Server) Routes() []Route {
 func (s Server) ListenAndServe() error {
 	server := &http.Server{
 		Addr:    s.addr,
-		Handler: countRequests(s.mux()),
+		Handler: countRequests(authenticateWrites(s.mux())),
 	}
 
 	return server.ListenAndServe()
@@ -75,6 +77,28 @@ func countRequests(next http.Handler) http.Handler {
 	})
 }
 
+func authenticateWrites(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost && r.Method != http.MethodPut {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		token := config.AuthToken()
+		if token == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if r.Header.Get("Authorization") != "Bearer "+token {
+			writeError(w, http.StatusUnauthorized, errors.New("unauthorized"))
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -91,11 +115,17 @@ func (s Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) handleConfig(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
+		s.handleConfigGet(w, r)
+	case http.MethodPut:
+		s.handleConfigPut(w, r)
+	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
+}
 
+func (s Server) handleConfigGet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	cfg, err := config.Current()
@@ -109,6 +139,40 @@ func (s Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to encode config", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (s Server) handleConfigPut(w http.ResponseWriter, r *http.Request) {
+	var cfg config.Config
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&cfg); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		writeError(w, http.StatusBadRequest, errors.New("request body must contain a single JSON object"))
+		return
+	}
+
+	if err := config.Update(cfg); err != nil {
+		var validationError config.ValidationError
+		if errors.As(err, &validationError) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := browser.Restart(); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	writeOK(w)
 }
 
 func (s Server) handleHealth(w http.ResponseWriter, r *http.Request) {
