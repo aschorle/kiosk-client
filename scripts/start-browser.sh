@@ -12,6 +12,7 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 CONFIG_FILE=${KIOSK_CLIENT_CONFIG:-"$PROJECT_DIR/config/client.conf"}
 DEFAULT_URL="http://localhost"
+WELCOME_URL="http://localhost:8080/welcome"
 DEFAULT_BROWSER="chromium"
 
 log_info() {
@@ -79,15 +80,87 @@ find_chromium() {
 }
 
 read_config_url() {
-	# Read URL=... from config/client.conf and fall back when it is empty.
+	# Read URL=... from config/client.conf and fall back to the local welcome
+	# page until a real kiosk target is configured.
 	config_url=$(read_config_value "URL")
 
-	if [ "$config_url" != "" ]; then
+	if is_configured_url "$config_url"; then
 		printf '%s\n' "$config_url"
 		return 0
 	fi
 
-	printf '%s\n' "$DEFAULT_URL"
+	printf '%s\n' "$WELCOME_URL"
+}
+
+is_configured_url() {
+	url=${1:-}
+
+	case "$url" in
+		http://*|https://*)
+			;;
+		*)
+			return 1
+			;;
+	esac
+
+	case "$url" in
+		http://localhost|http://localhost/|https://localhost|https://localhost/|http://127.0.0.1|http://127.0.0.1/|https://127.0.0.1|https://127.0.0.1/)
+			return 1
+			;;
+	esac
+
+	return 0
+}
+
+wait_for_welcome_page() {
+	url=$1
+
+	if [ "$url" != "$WELCOME_URL" ]; then
+		return 0
+	fi
+
+	attempt=1
+	while [ "$attempt" -le 60 ]; do
+		if command -v wget >/dev/null 2>&1; then
+			if wget -q --spider "$url" >/dev/null 2>&1; then
+				return 0
+			fi
+		elif command -v curl >/dev/null 2>&1; then
+			if curl -fsS "$url" >/dev/null 2>&1; then
+				return 0
+			fi
+		elif is_local_admin_port_listening; then
+			return 0
+		else
+			log_info "Warte auf lokale Willkommensseite: $url"
+		fi
+
+		sleep 1
+		attempt=$((attempt + 1))
+	done
+
+	log_error "Lokale Willkommensseite ist nicht erreichbar: $url"
+	return 1
+}
+
+is_local_admin_port_listening() {
+	for table in /proc/net/tcp /proc/net/tcp6; do
+		if [ ! -r "$table" ]; then
+			continue
+		fi
+
+		if awk 'NR > 1 {
+			split($2, address, ":")
+			if (address[2] == "1F90" && $4 == "0A") {
+				found = 1
+			}
+		}
+		END { exit !found }' "$table"; then
+			return 0
+		fi
+	done
+
+	return 1
 }
 
 validate_url() {
@@ -131,6 +204,10 @@ start_browser() {
 	fi
 
 	if ! validate_url "$kiosk_url"; then
+		return 1
+	fi
+
+	if ! wait_for_welcome_page "$kiosk_url"; then
 		return 1
 	fi
 

@@ -35,6 +35,7 @@ func NewServer(addr string, provider status.Provider) Server {
 func (s Server) Routes() []Route {
 	return []Route{
 		{Method: http.MethodGet, Path: "/"},
+		{Method: http.MethodGet, Path: "/welcome"},
 		{Method: http.MethodGet, Path: "/api/config"},
 		{Method: http.MethodPut, Path: "/api/config"},
 		{Method: http.MethodGet, Path: "/api/health"},
@@ -59,6 +60,7 @@ func (s Server) ListenAndServe() error {
 func (s Server) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleRoot)
+	mux.HandleFunc("/welcome", s.handleWelcome)
 	mux.HandleFunc("/api/config", s.handleConfig)
 	mux.HandleFunc("/api/health", s.handleHealth)
 	mux.HandleFunc("/api/info", s.handleInfo)
@@ -112,6 +114,21 @@ func (s Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(dashboardHTML))
+}
+
+func (s Server) handleWelcome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if r.URL.Path != "/welcome" {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(welcomeHTML))
 }
 
 func (s Server) handleConfig(w http.ResponseWriter, r *http.Request) {
