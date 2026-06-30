@@ -14,6 +14,7 @@ PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 SESSION_NAME="kiosk"
 SESSION_FILE="$SESSION_NAME.desktop"
 WAYLAND_SESSION_DIR="/usr/share/wayland-sessions"
+XSESSION_DIR="/usr/share/xsessions"
 GDM3_CONFIG="/etc/gdm3/daemon.conf"
 ACCOUNTS_SERVICE_DIR="/var/lib/AccountsService/users"
 SDDM_CONFIG_DIR="/etc/sddm.conf.d"
@@ -116,22 +117,11 @@ write_if_changed() {
 	return 0
 }
 
-install_kiosk_session_file() {
-	# Install the Wayland session file used by the display manager.
-	session_user=$1
-	session_exec=$PROJECT_DIR/scripts/start-cage.sh
-	session_target=$WAYLAND_SESSION_DIR/$SESSION_FILE
+write_session_file() {
+	# Write one display-manager session file.
+	session_target=$1
+	session_exec=$2
 	temp_file=$session_target.tmp.$$
-
-	if [ ! -x "$session_exec" ]; then
-		log_error "Cage-Startskript ist nicht ausfuehrbar: $session_exec"
-		return 1
-	fi
-
-	if ! mkdir -p "$WAYLAND_SESSION_DIR"; then
-		log_error "Session-Verzeichnis konnte nicht erstellt werden: $WAYLAND_SESSION_DIR"
-		return 1
-	fi
 
 	cat >"$temp_file" <<EOF
 [Desktop Entry]
@@ -141,6 +131,7 @@ Exec=$session_exec
 TryExec=$session_exec
 Type=Application
 DesktopNames=kiosk
+X-GDM-SessionRegisters=true
 EOF
 
 	if ! write_if_changed "$session_target" "$temp_file"; then
@@ -149,6 +140,35 @@ EOF
 
 	if ! chmod 0644 "$session_target"; then
 		log_error "Dateirechte konnten nicht gesetzt werden: $session_target"
+		return 1
+	fi
+}
+
+install_kiosk_session_file() {
+	# Install the session in both Wayland and X session directories. GDM stores
+	# the chosen session through AccountsService and may resolve XSession= by
+	# looking at /usr/share/xsessions even when the actual kiosk runtime starts
+	# Cage directly.
+	session_user=$1
+	session_exec=$PROJECT_DIR/scripts/start-cage.sh
+	wayland_session_target=$WAYLAND_SESSION_DIR/$SESSION_FILE
+	xsession_target=$XSESSION_DIR/$SESSION_FILE
+
+	if [ ! -x "$session_exec" ]; then
+		log_error "Cage-Startskript ist nicht ausfuehrbar: $session_exec"
+		return 1
+	fi
+
+	if ! mkdir -p "$WAYLAND_SESSION_DIR" "$XSESSION_DIR"; then
+		log_error "Session-Verzeichnisse konnten nicht erstellt werden."
+		return 1
+	fi
+
+	if ! write_session_file "$wayland_session_target" "$session_exec"; then
+		return 1
+	fi
+
+	if ! write_session_file "$xsession_target" "$session_exec"; then
 		return 1
 	fi
 
