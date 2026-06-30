@@ -1,6 +1,9 @@
 # Build / editor
 .vscode/
 .DS_Store
+kiosk-agent
+*.test
+coverage.out
 
 # Secrets
 config/*.secret

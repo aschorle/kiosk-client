@@ -1,6 +1,6 @@
 # Installation
 
-Der kiosk-client unterstuetzt ab Version 0.11.0 ausschliesslich die Appliance Edition auf Debian oder Armbian Minimal.
+Der kiosk-client unterstuetzt ausschliesslich die Appliance Edition auf Debian oder Armbian Minimal.
 
 ## Voraussetzungen
 

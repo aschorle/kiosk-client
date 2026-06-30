@@ -1,34 +1,19 @@
-Hardware-Notes
-==============
+# Hardware
 
-Zielhardware
+Primaere Zielplattform:
 
-- Primär: Radxa Rock 4C+
-- Sekundär: Raspberry Pi 4
+- Radxa ROCK 4C+ / RK3399
 
-Designprinzip
+Weitere getestete Zielplattform:
 
-Hardware-spezifische Unterschiede werden minimal gehalten und auf Installer-Ebene gekapselt. Der Laufzeit-Client sollte ohne Board-spezifischen Code auskommen.
+- Raspberry Pi 4
 
-Wichtige Unterschiede und Hinweise
+## Laufzeitannahmen
 
-Radxa Rock 4C+
-- AArch64-CPU, benötigt ggf. andere Firmware/Bootloader-Optionen
-- Prüfen, ob Debian Bookworm Images oder Anpassungen nötig sind
-- WLAN-Module und Treiber: je nach Revision ggf. proprietäre Firmware
-- Thermisches Verhalten: Rock 4C+ kann je nach Last stärker wärmen — auf geringe CPU-Last achten
+- Debian oder Armbian Minimal
+- AArch64
+- systemd
+- Cage
+- Chromium
 
-Raspberry Pi 4
-- Weit verbreitete Unterstützung in Debian-basierten Images
-- Proprietäre Firmware/Boot-Mechanismen beachten (boot partition)
-- WLAN und GPU-Unterstützung in Standard-Images gut
-
-Boot- und Kernel-Überlegungen
-
-- Ziel ist ein Standard-Debian-Userland mit minimalen zusätzlichen Paketen
-- Kernel- oder Boot-anpassungen sollten im Installer dokumentiert und optional gehalten werden
-
-Empfehlung
-
-- Testgeräte für beide Hardwaretypen einrichten
-- Installer-Skripte so erstellen, dass sie die Hardware erkennen und die passenden Schritte ausführen
+Board-spezifische Unterschiede bleiben im Installer gekapselt. Die Agent- und Web-Logik enthaelt keine Board-spezialisierten Pfade.

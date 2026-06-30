@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	agentVersion = "0.12.0"
-	clockTicks   = 100
+	AgentVersion = "0.12.0"
+	clockTicks    = 100
 )
 
 var (
@@ -230,7 +230,7 @@ func (p Provider) Info() Info {
 	osName, osVersion := osRelease()
 
 	return Info{
-		AgentVersion: agentVersion,
+		AgentVersion: AgentVersion,
 		GoVersion:    runtime.Version(),
 		Hostname:     hostname(),
 		Architecture: architecture(),

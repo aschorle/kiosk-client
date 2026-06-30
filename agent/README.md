@@ -1,11 +1,14 @@
-Agent (Platzhalter)
-=====================
+# Agent
 
-Der `kiosk-agent` ist für die lokale Konfigurationsverwaltung und die Web-UI verantwortlich. Aufgaben:
+Der `kiosk-agent` ist der lokale Prozess fuer Administration, API, Status und Metriken.
 
-- Konfiguration aus `config/client.conf` lesen/schreiben
-- Lokale Web-UI (Port konfigurierbar) bereitstellen
-- API-Endpunkte (siehe docs/API.md) implementieren
-- Steuerbefehle: Reload/Restart/Reboot
+## Aufgaben
 
-Implementierung folgt in späteren Schritten.
+- `config/client.conf` laden und schreiben
+- lokale Weboberflaeche ausliefern
+- REST-Endpunkte unter `/api/...` bereitstellen
+- Status-, Health- und Metrikdaten sammeln
+- Browserzustand lesen
+- Appliance-Runtime ueber `kiosk-appliance.service` neu starten
+
+Der Agent verwaltet genau dieses eine lokale Geraet.

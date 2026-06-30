@@ -1,28 +1,17 @@
-Roadmap
-=======
+# Roadmap
 
-Kurzfristig (MVP)
+## Bis Version 1.0
 
-- Dokumentation und Platzhalterstruktur (dieses Repository)
-- Installer-Skripte für Radxa und Raspberry Pi (Basispakete)
-- systemd-Unit-Templates (Platzhalter)
-- Lokale Web-UI: Anzeige/Aktualisierung der URL, Reload, Restart
+- Installation auf frischen Debian-/Armbian-Minimalsystemen verifizieren
+- Release-Artefakt mit vorgebautem `kiosk-agent` festlegen
+- lokale Administration final pruefen
+- Betriebsdokumentation abschliessen
+- Update-Ablauf dokumentieren
 
-Mittelfristig
+## Nicht-Ziele
 
-- Implementierung des `kiosk-agent` mit oben beschriebener API
-- robuster Watchdog-Service zur Überwachung des Browsers
-- sichere Remote-Wartungs-Workflows (SSH + Logging)
-- optionales Remote-Logging/Monitoring (leichtgewichtig)
-
-Langfristig
-
-- Fernverwaltung/Deploy-Tooling für Massen-Rollouts
-- OTA-Update-Strategie für Client-Software
-- Feinere Energieoptimierungen und Temperaturmanagement
-
-Prioritäten
-
-1. Stabilität und niedriger Ressourcenverbrauch
-2. Klare Trennung von Client- und Server-Logik
-3. Einfache, reproduzierbare Installer für die unterstützten Boards
+- keine Cloud
+- keine Mehrgeraeteverwaltung
+- keine zentrale Verwaltung
+- keine grafische Vollumgebung
+- keine neuen lokalen APIs ohne zwingenden Appliance-Nutzen

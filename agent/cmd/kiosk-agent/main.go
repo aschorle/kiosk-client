@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	version          = "0.12.0"
 	configPath       = "config/client.conf"
 	httpAddr         = ":8080"
 	watchdogInterval = 30 * time.Second
@@ -23,7 +22,7 @@ const (
 
 func main() {
 	status.SetAgentStartTime(time.Now().UTC())
-	log.Printf("starting kiosk-agent %s", version)
+	log.Printf("starting kiosk-agent %s", status.AgentVersion)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -37,7 +36,7 @@ func main() {
 		log.Fatalf("failed to load configuration: %v", err)
 	}
 
-	provider := status.NewProvider(cfg, version)
+	provider := status.NewProvider(cfg, status.AgentVersion)
 	server := web.NewServer(httpAddr, provider)
 
 	log.Printf("configuration loaded: url=%s device_id=%s browser=%s", cfg.URL, cfg.DeviceID, cfg.Browser)

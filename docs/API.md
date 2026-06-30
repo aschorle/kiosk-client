@@ -1,31 +1,36 @@
-API - Lokale Weboberfläche (Platzhalter)
-=========================================
+# API
 
-Der Kiosk-Client stellt eine kleine lokale HTTP-API bereit, um Status und Konfiguration anzuzeigen bzw. zu ändern. Diese API ist in späteren Releases zu implementieren. Endpunkte (Entwurf):
+Der `kiosk-agent` stellt eine lokale HTTP-API auf Port `8080` bereit.
 
-GET /api/status
-- Rückgabe: JSON mit System- und Browserstatus
+## Lesende Endpunkte
 
-GET /api/config
-- Rückgabe: JSON mit aktueller Konfiguration (URL, DEVICE_ID, PORT, VERSION)
+- `GET /api/status`
+- `GET /api/info`
+- `GET /api/config`
+- `GET /api/health`
+- `GET /api/metrics`
 
-POST /api/config
-- Body: JSON mit neuen Konfigurationswerten (z.B. `{ "URL": "https://..." }`)
-- Wirkung: Konfiguration speichern und optional Browser neu laden
+## Schreibende Endpunkte
 
-POST /api/reload
-- Wirkung: Browser-Reload (F5 / navigate reload)
+- `PUT /api/config`
+- `POST /api/browser/reload`
+- `POST /api/browser/restart`
 
-POST /api/restart-browser
-- Wirkung: Browser-Prozess neu starten
+Schreibende Endpunkte akzeptieren optional `Authorization: Bearer <AUTH_TOKEN>`.
+Wenn `AUTH_TOKEN` leer ist, sind lokale Schreibzugriffe ohne Token erlaubt.
 
-POST /api/reboot
-- Wirkung: Gerät neu starten (systemd reboot)
+## Konfiguration
 
-Sicherheits-Hinweis
-- API-Endpunkte sollen nur lokal erreichbar sein (Bind auf localhost oder Firewall-Regeln)
-- Authentifizierung/Autorisierung ist später zu spezifizieren (z.B. Token oder SSH-only)
+`PUT /api/config` schreibt `config/client.conf` und antwortet bei erfolgreichem Speichern mit HTTP 200. Der Browser-Neustart ist davon getrennt und wird ausschliesslich ueber die Browser-Endpunkte ausgefuehrt.
 
-Weitere Hinweise
-- Der lokale Web-UI-Port wird über `config/client.conf` festgelegt (Standard: 8080)
-- API-Versionierung sollte von Anfang an geplant werden (z.B. `/api/v1/...`)
+`AUTH_TOKEN` wird nicht ueber `GET /api/config` ausgegeben.
+
+## Browsersteuerung
+
+Reload und Neustart starten die Appliance-Runtime neu:
+
+```text
+kiosk-appliance.service
+```
+
+Dadurch startet Cage Chromium erneut und liest die aktuelle Konfiguration.

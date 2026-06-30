@@ -1,6 +1,7 @@
-CHANGELOG
-=========
+# CHANGELOG
 
-0.1.0 - Initial scaffold
-- Projektstruktur und Dokumentation angelegt
-- Platzhalter-Dateien erstellt
+## 0.12.0
+
+- Chromium-Flag `--disable-gpu` entfernt, damit GPU-Beschleunigung auf RK3399/Panfrost getestet werden kann.
+- Release-Audit vor Version 1.0: veraltete Dokumentation bereinigt.
+- Projektstruktur auf Appliance Edition fuer Debian/Armbian Minimal reduziert.
