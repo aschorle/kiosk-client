@@ -112,6 +112,18 @@ Ab Version 0.4.2 wird der `kiosk-agent` als systemd User Service betrieben. Die 
 
 Der Installer legt die Unit unter `~/.config/systemd/user/` ab, aktiviert sie und startet sie, sobald `graphical-session.target` aktiv ist. Der Service verwendet `Restart=always` und `RestartSec=3`, damit der lokale Agent nach einem Absturz automatisch wieder verfügbar wird.
 
+Diagnostics
+
+Ab Version 0.4.3 liefert `/api/status` zusätzliche Systemdiagnosen. Dazu gehören Uptime, Kernel-Version, Debian-Version, Architektur, CPU-Modell, Speicher, freier Speicherplatz und Load Average.
+
+Alle Werte werden ausschließlich lesend über `/proc`, `/sys`, `uname` beziehungsweise Go-Standardbibliothek ermittelt. Der Agent benötigt dafür keine Root-Rechte, startet keine externen Programme und verändert keine Systemzustände.
+
+Configuration API
+
+Ab Version 0.4.4 stellt der `kiosk-agent` die beim Start geladene Client-Konfiguration über `GET /api/config` bereit. Die Antwort enthält `url`, `device_id` und `browser` als JSON.
+
+Die API ist ausschließlich lesend. `config/client.conf` wird nicht verändert und für diese Route nicht erneut geöffnet. Wenn die Konfiguration beim Start nicht geladen oder nicht gültig war, antwortet der Agent mit HTTP 500 und einem JSON-Fehlerobjekt.
+
 Neue Runtime Architektur
 
 Boot

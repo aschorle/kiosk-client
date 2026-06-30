@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/aschorle/kiosk-client/agent/internal/config"
 	"github.com/aschorle/kiosk-client/agent/internal/status"
 )
 
@@ -31,6 +32,7 @@ func NewServer(addr string, provider status.Provider) Server {
 func (s Server) Routes() []Route {
 	return []Route{
 		{Method: http.MethodGet, Path: "/"},
+		{Method: http.MethodGet, Path: "/api/config"},
 		{Method: http.MethodGet, Path: "/api/status"},
 	}
 }
@@ -48,6 +50,7 @@ func (s Server) ListenAndServe() error {
 func (s Server) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleRoot)
+	mux.HandleFunc("/api/config", s.handleConfig)
 	mux.HandleFunc("/api/status", s.handleStatus)
 
 	return mux
@@ -68,6 +71,27 @@ func (s Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("kiosk-agent running"))
 }
 
+func (s Server) handleConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	cfg, err := config.Current()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(errorResponse{Error: err.Error()})
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(cfg); err != nil {
+		http.Error(w, "failed to encode config", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (s Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -80,4 +104,8 @@ func (s Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to encode status", http.StatusInternalServerError)
 		return
 	}
+}
+
+type errorResponse struct {
+	Error string `json:"error"`
 }
