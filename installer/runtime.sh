@@ -14,6 +14,8 @@ APPLIANCE_USER_SERVICES="
 kiosk-agent.service
 kiosk-appliance.service
 "
+AGENT_BINARY="$PROJECT_DIR/kiosk-agent"
+AGENT_SOURCE="./agent/cmd/kiosk-agent"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/install-common.sh"
@@ -68,6 +70,45 @@ run_user_systemctl() {
 	shift 2
 
 	sudo -u "$kiosk_user" XDG_RUNTIME_DIR="/run/user/$user_uid" systemctl --user "$@"
+}
+
+ensure_agent_binary() {
+	# Ensure kiosk-agent exists before installing or enabling its service.
+	kiosk_user=$1
+
+	if [ -x "$AGENT_BINARY" ]; then
+		log_success "kiosk-agent Binary vorhanden: $AGENT_BINARY"
+		return 0
+	fi
+
+	if [ -e "$AGENT_BINARY" ] && [ ! -x "$AGENT_BINARY" ]; then
+		log_error "kiosk-agent existiert, ist aber nicht ausfuehrbar: $AGENT_BINARY"
+		return 1
+	fi
+
+	if ! command -v go >/dev/null 2>&1; then
+		log_error "kiosk-agent fehlt: $AGENT_BINARY"
+		log_error "Go ist nicht installiert; kiosk-agent kann nicht gebaut werden."
+		return 1
+	fi
+
+	log_info "Baue kiosk-agent aus vorhandenen Quellen."
+	if ! (cd "$PROJECT_DIR" && go build -o "$AGENT_BINARY" "$AGENT_SOURCE"); then
+		log_error "kiosk-agent konnte nicht gebaut werden."
+		return 1
+	fi
+
+	if ! chmod 0755 "$AGENT_BINARY"; then
+		log_error "Dateirechte fuer kiosk-agent konnten nicht gesetzt werden."
+		return 1
+	fi
+
+	if ! chown "$kiosk_user:$kiosk_user" "$AGENT_BINARY"; then
+		log_error "Besitzrechte fuer kiosk-agent konnten nicht gesetzt werden."
+		return 1
+	fi
+
+	log_success "kiosk-agent gebaut: $AGENT_BINARY"
 }
 
 install_service_file() {
@@ -145,6 +186,8 @@ install_appliance_runtime() {
 	kiosk_user=$(detect_kiosk_user)
 	user_home=$(get_user_home "$kiosk_user")
 	user_uid=$(get_user_uid "$kiosk_user")
+
+	ensure_agent_binary "$kiosk_user"
 
 	for service_name in $APPLIANCE_USER_SERVICES; do
 		install_service_file "$kiosk_user" "$user_home" "$service_name"
