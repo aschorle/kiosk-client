@@ -84,6 +84,35 @@ Das Skript installiert ausschließlich das Paket `chromium` über `apt`, prüft 
 
 Der Kioskmodus wird in diesem Schritt noch nicht aktiviert. Browserflags, Policies, Cache-Konfiguration, Autostart, Wayland, Cage, systemd-Integration und URL-Konfiguration folgen in späteren Phasen, damit Installation, Browser-Laufzeit und Kiosk-Verhalten getrennt testbar bleiben.
 
+Automatischer Browserstart
+
+Der automatische Browserstart wird über `systemd/kiosk-browser.service` eingerichtet. Die Unit startet `scripts/start-browser.sh`, wodurch Chromium im Kioskmodus mit der URL aus `config/client.conf` geöffnet wird.
+
+Die Installation erfolgt über `installer/systemd.sh`. Das Skript kopiert die Service-Datei nach `/etc/systemd/system/kiosk-browser.service`, führt `systemctl daemon-reload` aus, aktiviert den Service und startet ihn direkt. Der Service läuft im Benutzerkontext des Installationsbenutzers. Bei Installationen mit `sudo` wird dafür `SUDO_USER` verwendet; alternativ kann der Zielbenutzer über `KIOSK_USER` vorgegeben werden.
+
+Der Service ist für den Start nach dem grafischen Systemziel vorgesehen und wartet auf `systemd-user-sessions.service` sowie `display-manager.service`. Er verwendet `Restart=always` und `RestartSec=5`. Wenn Chromium abstürzt oder beendet wird, startet systemd den Browser nach fünf Sekunden erneut.
+
+Aktivierung:
+
+```bash
+systemctl enable kiosk-browser.service
+systemctl start kiosk-browser.service
+```
+
+Status prüfen:
+
+```bash
+systemctl status kiosk-browser.service
+```
+
+Deaktivierung:
+
+```bash
+systemctl disable --now kiosk-browser.service
+```
+
+In dieser Phase werden noch kein Cage, keine Wayland-spezifische Sitzung, kein Watchdog und keine lokale Weboberfläche eingerichtet.
+
 Beispielhafte manuelle Schritte (nicht als Produktivskript ausgeführt)
 
 - Paketinstallation (als Hinweis):

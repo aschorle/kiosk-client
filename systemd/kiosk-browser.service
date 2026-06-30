@@ -1,0 +1,30 @@
+# kiosk-client browser service
+#
+# This unit starts the Chromium kiosk runtime after graphical user sessions are
+# allowed and a display manager has been started. It intentionally does not
+# configure Cage, Wayland, a watchdog, or a local web interface.
+
+[Unit]
+Description=kiosk-client Chromium browser
+Documentation=file:@PROJECT_DIR@/docs/Browser.md
+After=systemd-user-sessions.service display-manager.service
+Wants=display-manager.service
+
+[Service]
+# The installer replaces @KIOSK_USER@ with the target login user so Chromium
+# runs in a normal user context rather than as root.
+User=@KIOSK_USER@
+
+# Keep relative paths in helper scripts predictable.
+WorkingDirectory=@PROJECT_DIR@
+
+# Start the tested browser launcher. The launcher reads config/client.conf and
+# opens the configured URL in Chromium kiosk mode.
+ExecStart=@PROJECT_DIR@/scripts/start-browser.sh
+
+# Chromium should come back after crashes or accidental termination.
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
