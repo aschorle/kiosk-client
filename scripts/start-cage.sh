@@ -3,14 +3,15 @@
 # Start the Cage runtime for kiosk-client.
 #
 # Purpose:
-#   Starts Cage and runs scripts/start-browser.sh inside it. This is the first
-#   runtime wrapper for the future GNOME-free kiosk mode.
+#   Starts Cage and runs scripts/start-browser.sh inside it. GNOME/GDM can stay
+#   installed as fallback, while this script owns the appliance runtime path.
 
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 CAGE_BIN=${CAGE_BIN:-cage}
+BROWSER_SCRIPT=$PROJECT_DIR/scripts/start-browser.sh
 
 log_info() {
 	printf '[INFO] %s\n' "$*"
@@ -35,15 +36,21 @@ start_cage() {
 		return 1
 	fi
 
-	if [ ! -x "$PROJECT_DIR/scripts/start-browser.sh" ]; then
-		log_error "Browser-Startskript ist nicht ausführbar: $PROJECT_DIR/scripts/start-browser.sh"
+	if [ ! -x "$BROWSER_SCRIPT" ]; then
+		log_error "Browser-Startskript ist nicht ausfuehrbar: $BROWSER_SCRIPT"
 		return 1
 	fi
 
-	log_info "Starte Cage: $cage_path"
-	log_info "Starte Browser in Cage: $PROJECT_DIR/scripts/start-browser.sh"
+	if ! cd "$PROJECT_DIR"; then
+		log_error "Working Directory konnte nicht gesetzt werden: $PROJECT_DIR"
+		return 1
+	fi
 
-	exec "$cage_path" "$PROJECT_DIR/scripts/start-browser.sh"
+	log_info "Working Directory: $PROJECT_DIR"
+	log_info "Starte Cage: $cage_path"
+	log_info "Starte Browser in Cage: $BROWSER_SCRIPT"
+
+	exec "$cage_path" -- "$BROWSER_SCRIPT"
 }
 
 main() {

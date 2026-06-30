@@ -3,20 +3,20 @@
 # systemd user-service setup module for kiosk-client.
 #
 # Purpose:
-#   Installs and enables the current kiosk-client systemd user service. Future
-#   runtime services are copied into place, but are not enabled until the boot
-#   path is intentionally switched.
+#   Installs the kiosk-client systemd user services. The productive appliance
+#   runtime is kiosk-runtime.service. kiosk-browser.service is kept only as a
+#   manual legacy/fallback service and is disabled during installation.
 
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 ENABLED_USER_SERVICES="
-kiosk-browser.service
 kiosk-agent.service
-"
-PREPARED_USER_SERVICES="
 kiosk-runtime.service
+"
+FALLBACK_USER_SERVICES="
+kiosk-browser.service
 "
 
 # shellcheck disable=SC1091
@@ -159,6 +159,34 @@ enable_user_service_without_session() {
 	return 0
 }
 
+disable_user_service_without_session() {
+	# Disable a user service by removing the symlink created below its
+	# WantedBy= target. This is the offline equivalent of systemctl --user
+	# disable when no user manager is reachable yet.
+	target_user=$1
+	user_home=$2
+	service_name=$3
+
+	if ! wanted_by=$(get_service_wanted_by "$service_name"); then
+		return 1
+	fi
+
+	user_systemd_dir=$user_home/.config/systemd/user
+	wants_link=$user_systemd_dir/$wanted_by.wants/$service_name
+
+	if [ -L "$wants_link" ]; then
+		log_info "Deaktiviere Fallback-Service-Link: $wants_link"
+		if ! rm "$wants_link"; then
+			log_error "$service_name konnte nicht deaktiviert werden."
+			return 1
+		fi
+	elif [ -e "$wants_link" ]; then
+		log_warn "Aktivierungseintrag ist kein Symlink und wurde nicht entfernt: $wants_link"
+	fi
+
+	return 0
+}
+
 remove_legacy_default_target_link() {
 	# Older kiosk-client versions enabled kiosk-browser.service below
 	# default.target. That can start Chromium before the graphical session is
@@ -233,6 +261,7 @@ install_user_service() {
 	user_home=$2
 	user_uid=$3
 	service_name=$4
+	start_policy=${5:-start}
 
 	if ! install_service_file "$target_user" "$user_home" "$service_name"; then
 		return 1
@@ -269,6 +298,11 @@ install_user_service() {
 		return 0
 	fi
 
+	if [ "$start_policy" = "defer-start" ]; then
+		log_info "Start von $service_name wird bis nach der Fallback-Deaktivierung verschoben."
+		return 0
+	fi
+
 	log_info "Starting service: $service_name"
 	if ! run_user_systemctl "$target_user" "$user_uid" restart "$service_name"; then
 		log_error "$service_name konnte nicht gestartet werden."
@@ -286,6 +320,98 @@ install_user_service() {
 	return 1
 }
 
+install_fallback_service() {
+	# Install the legacy browser service but keep it disabled and stopped. It
+	# remains available for manual fallback if Cage must be bypassed.
+	target_user=$1
+	user_home=$2
+	user_uid=$3
+	service_name=$4
+
+	if ! install_service_file "$target_user" "$user_home" "$service_name"; then
+		return 1
+	fi
+
+	if ! remove_legacy_default_target_link "$target_user" "$user_home" "$service_name"; then
+		return 1
+	fi
+
+	if is_user_manager_available "$user_uid"; then
+		log_info "Reloading user daemon..."
+		if ! run_user_systemctl "$target_user" "$user_uid" daemon-reload; then
+			log_error "systemctl --user daemon-reload fehlgeschlagen."
+			return 1
+		fi
+
+		if run_user_systemctl "$target_user" "$user_uid" is-enabled --quiet "$service_name"; then
+			log_info "Disabling fallback service: $service_name"
+			if ! run_user_systemctl "$target_user" "$user_uid" disable "$service_name"; then
+				log_error "$service_name konnte nicht deaktiviert werden."
+				return 1
+			fi
+		else
+			log_info "Fallback service ist nicht aktiviert: $service_name"
+		fi
+
+		if run_user_systemctl "$target_user" "$user_uid" is-active --quiet "$service_name"; then
+			log_info "Stopping fallback service: $service_name"
+			if ! run_user_systemctl "$target_user" "$user_uid" stop "$service_name"; then
+				log_error "$service_name konnte nicht gestoppt werden."
+				return 1
+			fi
+		else
+			log_info "Fallback service laeuft nicht: $service_name"
+		fi
+	else
+		if ! disable_user_service_without_session "$target_user" "$user_home" "$service_name"; then
+			return 1
+		fi
+		log_warn "User session not active; fallback service installed and disabled for next login/boot"
+	fi
+
+	log_success "$service_name installiert und als Fallback deaktiviert."
+	return 0
+}
+
+start_runtime_service() {
+	# Start the productive Cage runtime only when a graphical session exists.
+	target_user=$1
+	user_uid=$2
+	service_name=kiosk-runtime.service
+
+	if ! is_user_manager_available "$user_uid"; then
+		log_warn "User session not active; $service_name starts after next login/boot"
+		return 0
+	fi
+
+	log_info "Reloading user daemon..."
+	if ! run_user_systemctl "$target_user" "$user_uid" daemon-reload; then
+		log_error "systemctl --user daemon-reload fehlgeschlagen."
+		return 1
+	fi
+
+	if ! is_graphical_session_active "$target_user" "$user_uid"; then
+		log_warn "graphical-session.target ist nicht aktiv; $service_name startet mit der naechsten grafischen Anmeldung."
+		return 0
+	fi
+
+	log_info "Starting service: $service_name"
+	if ! run_user_systemctl "$target_user" "$user_uid" restart "$service_name"; then
+		log_error "$service_name konnte nicht gestartet werden."
+		return 1
+	fi
+
+	log_info "Pruefe Status von $service_name."
+	if run_user_systemctl "$target_user" "$user_uid" is-active --quiet "$service_name"; then
+		log_success "$service_name laeuft als produktive Appliance Runtime."
+		return 0
+	fi
+
+	run_user_systemctl "$target_user" "$user_uid" status "$service_name" --no-pager || true
+	log_error "$service_name ist nicht aktiv."
+	return 1
+}
+
 install_user_services() {
 	# Install and enable currently active kiosk-client user services.
 	target_user=$(detect_target_user)
@@ -293,22 +419,18 @@ install_user_services() {
 	user_uid=$(get_user_uid "$target_user")
 
 	for service_name in $ENABLED_USER_SERVICES; do
-		install_user_service "$target_user" "$user_home" "$user_uid" "$service_name"
+		if [ "$service_name" = "kiosk-runtime.service" ]; then
+			install_user_service "$target_user" "$user_home" "$user_uid" "$service_name" "defer-start"
+		else
+			install_user_service "$target_user" "$user_home" "$user_uid" "$service_name"
+		fi
 	done
 
-	for service_name in $PREPARED_USER_SERVICES; do
-		install_service_file "$target_user" "$user_home" "$service_name"
-		if is_user_manager_available "$user_uid"; then
-			log_info "Reloading user daemon..."
-			if ! run_user_systemctl "$target_user" "$user_uid" daemon-reload; then
-				log_error "systemctl --user daemon-reload fehlgeschlagen."
-				return 1
-			fi
-		else
-			log_warn "User session not active; prepared service will be available after next login/boot"
-		fi
-		log_success "$service_name wurde vorbereitet, aber noch nicht aktiviert."
+	for service_name in $FALLBACK_USER_SERVICES; do
+		install_fallback_service "$target_user" "$user_home" "$user_uid" "$service_name"
 	done
+
+	start_runtime_service "$target_user" "$user_uid"
 }
 
 main() {

@@ -166,6 +166,62 @@ Die Zielarchitektur besteht aus drei Runtime-Komponenten:
 
 In dieser Phase installiert `installer/cage.sh` nur die Cage-Paketbasis. Es wird noch keine vollständige Cage-Sitzung konfiguriert, KDE wird nicht entfernt und der Bootprozess wird noch nicht auf Cage umgeschaltet.
 
+Appliance Runtime
+
+Ab Version 0.8.0 wird der produktive Browserstart ueber Cage ausgefuehrt. GNOME und GDM bleiben installiert und werden nicht entfernt. GDM stellt weiterhin den Autologin bereit; danach startet systemd im Benutzerkontext die Appliance Runtime.
+
+Der produktive Ablauf ist:
+
+```text
+Autologin
+-> systemd user service
+-> kiosk-runtime.service
+-> scripts/start-cage.sh
+-> cage
+-> scripts/start-browser.sh
+-> chromium
+-> URL aus config/client.conf
+```
+
+Installation und Aktivierung erfolgen weiterhin ueber den Hauptinstaller:
+
+```bash
+sudo ./installer/install.sh
+```
+
+`installer/cage.sh` installiert das Paket `cage` idempotent und prueft die Runtime mit `command -v cage` sowie `cage -v`. `installer/systemd.sh` installiert die User-Services nach `~/.config/systemd/user/`. Dabei werden `kiosk-agent.service` und `kiosk-runtime.service` aktiviert. `kiosk-browser.service` wird nur noch als Legacy/Fallback-Datei installiert, aber nicht mehr aktiviert.
+
+Wenn `kiosk-browser.service` aus einer frueheren Version noch enabled ist, deaktiviert der Installer den Service. Wenn er noch laeuft, wird er gestoppt. `kiosk-runtime.service` wird anschliessend nur dann direkt gestartet, wenn `graphical-session.target` in der User-Session aktiv ist. Andernfalls startet die Runtime beim naechsten grafischen Login oder Boot.
+
+Fallback auf den alten Browser-Service:
+
+```bash
+systemctl --user disable kiosk-runtime.service
+systemctl --user stop kiosk-runtime.service
+systemctl --user enable kiosk-browser.service
+systemctl --user restart kiosk-browser.service
+```
+
+Zurueck zur Appliance Runtime:
+
+```bash
+systemctl --user disable kiosk-browser.service
+systemctl --user stop kiosk-browser.service
+systemctl --user enable kiosk-runtime.service
+systemctl --user restart kiosk-runtime.service
+```
+
+Debugging-Befehle:
+
+```bash
+systemctl --user status kiosk-runtime.service
+systemctl --user status kiosk-browser.service
+journalctl --user -u kiosk-runtime.service -f
+journalctl --user -u kiosk-browser.service -f
+command -v cage
+cage -v
+```
+
 Phase 3
 
 Wayland/Cage wurde vorbereitet, ist jedoch bis zur Umstellung auf ein aktuelleres Chromium deaktiviert. Die aktuelle Radxa-Version von Chromium unterstützt `--ozone-platform=wayland` nicht zuverlässig. Deshalb läuft die Runtime in Version 0.3 weiterhin über X11, während Cage installiert bleibt und für Version 0.4 vorbereitet ist.

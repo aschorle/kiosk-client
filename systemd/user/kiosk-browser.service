@@ -1,8 +1,8 @@
 # kiosk-client browser user service
 #
-# This service starts Chromium only inside the graphical user session. It does
-# not configure watchdog or web interface workarounds. Cage will become the
-# dedicated runtime wrapper around scripts/start-browser.sh in a later step.
+# Legacy/fallback service. The productive appliance runtime uses
+# kiosk-runtime.service -> scripts/start-cage.sh -> Cage -> Chromium.
+# Keep this file installed for manual fallback, but do not enable it by default.
 
 [Unit]
 Description=kiosk-client Chromium browser
@@ -14,9 +14,8 @@ BindsTo=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
-# Runtime boundary: this service owns the browser process. A later Cage runtime
-# will wrap this same browser launcher without moving URL configuration into
-# systemd.
+# Fallback boundary: this service starts Chromium directly in the graphical
+# user session without Cage.
 WorkingDirectory=%h/kiosk-client
 ExecStart=%h/kiosk-client/scripts/start-browser.sh
 Restart=always

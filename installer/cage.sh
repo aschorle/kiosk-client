@@ -3,9 +3,8 @@
 # Cage installation module for kiosk-client.
 #
 # Purpose:
-#   Installs the minimal package base required for running Cage later. This
-#   module does not configure Cage sessions, change boot behavior, remove a
-#   desktop environment, or start Chromium inside Cage yet.
+#   Installs and verifies Cage for the productive appliance runtime. This
+#   module does not remove GNOME/GDM and does not switch display managers.
 
 set -eu
 
@@ -51,19 +50,19 @@ install_cage_packages() {
 verify_cage() {
 	# Verify that Cage is installed and print the detected version.
 	if ! cage_path=$(command -v cage 2>/dev/null); then
-		log_error "Cage wurde nicht gefunden. Bitte installer/cage.sh erneut ausführen."
+		log_error "Cage wurde nicht gefunden. Bitte pruefen, ob das Paket 'cage' installiert werden konnte."
 		return 1
 	fi
 
 	log_success "Cage gefunden: $cage_path"
 
-	if cage_version=$(cage --version 2>&1); then
+	if cage_version=$(cage -v 2>&1); then
 		log_info "Cage Version: $cage_version"
 		return 0
 	fi
 
-	log_warn "Cage Version konnte nicht ermittelt werden."
-	return 0
+	log_error "Cage ist vorhanden, aber 'cage -v' konnte nicht ausgefuehrt werden."
+	return 1
 }
 
 main() {

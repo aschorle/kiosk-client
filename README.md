@@ -174,6 +174,14 @@ Schreibende API-Zugriffe können über `AUTH_TOKEN` in `config/client.conf` gesc
 
 Fehlt der Header oder passt der Token nicht, antwortet der Agent mit HTTP 401 und einem JSON-Fehlerobjekt. Lesende `GET`-Endpunkte bleiben ohne Token erreichbar.
 
+Appliance Runtime
+
+Ab Version 0.8.0 ist `kiosk-runtime.service` der produktive systemd User Service fuer den grafischen Kiosk-Betrieb. Der Service startet `scripts/start-cage.sh`, dieses startet Cage, und Cage startet `scripts/start-browser.sh` mit Chromium und der URL aus `config/client.conf`.
+
+GNOME und GDM bleiben installiert und dienen weiterhin als Fallback fuer Login und Diagnose. Es wird keine Desktop-Umgebung entfernt und kein Paket deinstalliert. `kiosk-browser.service` bleibt als Legacy/Fallback-Datei vorhanden, wird vom Installer aber nicht mehr automatisch aktiviert. Falls er aus einer frueheren Version noch enabled ist oder laeuft, deaktiviert und stoppt `installer/systemd.sh` ihn.
+
+Der produktive Ablauf ist: Autologin -> systemd user service -> `kiosk-runtime.service` -> `start-cage.sh` -> Cage -> `start-browser.sh` -> Chromium -> konfigurierte URL.
+
 Neue Runtime Architektur
 
 Boot
