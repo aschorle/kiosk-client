@@ -15,12 +15,18 @@ import (
 )
 
 const (
-	defaultName    = "chromium"
-	dpkgStatus    = "/var/lib/dpkg/status"
-	serviceName    = "kiosk-browser.service"
-	systemctl      = "systemctl"
-	userSystemctl  = "--user"
-	reloadProperty = "CanReload"
+	defaultName          = "chromium"
+	dpkgStatus          = "/var/lib/dpkg/status"
+	serviceName          = "kiosk-browser.service"
+	systemctl            = "systemctl"
+	userSystemctl        = "--user"
+	reloadProperty       = "CanReload"
+	watchdogStateHealthy  = "healthy"
+	watchdogStateLimited  = "limited"
+	watchdogStateDisabled = "disabled"
+	restartLimit          = 5
+	restartLimitWindow    = 10 * time.Minute
+	restartHistoryLimit   = 10
 )
 
 // ErrReloadNotSupported is returned when systemd reports that the browser
@@ -30,7 +36,16 @@ var ErrReloadNotSupported = errors.New("reload not supported")
 var watchdogMetrics struct {
 	sync.Mutex
 	restartCount uint64
-	lastRestart  string
+	lastRestart   string
+	state         string
+	history       []RestartEvent
+	restartTimes []time.Time
+}
+
+// RestartEvent describes one watchdog-triggered browser restart.
+type RestartEvent struct {
+	Time   string `json:"time"`
+	Reason string `json:"reason"`
 }
 
 // Runtime describes the configured browser executable.
@@ -111,6 +126,28 @@ func LastRestart() string {
 	return watchdogMetrics.lastRestart
 }
 
+// WatchdogState returns the current watchdog state.
+func WatchdogState() string {
+	watchdogMetrics.Lock()
+	defer watchdogMetrics.Unlock()
+
+	if watchdogMetrics.state == "" {
+		return watchdogStateDisabled
+	}
+
+	return watchdogMetrics.state
+}
+
+// RestartHistory returns the most recent watchdog-triggered restarts.
+func RestartHistory() []RestartEvent {
+	watchdogMetrics.Lock()
+	defer watchdogMetrics.Unlock()
+
+	history := make([]RestartEvent, len(watchdogMetrics.history))
+	copy(history, watchdogMetrics.history)
+	return history
+}
+
 // StartWatchdog starts a background browser watchdog worker.
 func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string, ...interface{})) <-chan struct{} {
 	done := make(chan struct{})
@@ -126,16 +163,27 @@ func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string
 	go func() {
 		defer close(done)
 
+		setWatchdogState(watchdogStateHealthy)
+
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ctx.Done():
+				setWatchdogState(watchdogStateDisabled)
 				logf("browser watchdog stopped")
 				return
 			case <-ticker.C:
 				if IsRunning() {
+					continue
+				}
+
+				reason := "browser not running"
+				now := time.Now().UTC()
+				if restartLimitReached(now) {
+					setWatchdogState(watchdogStateLimited)
+					logf("browser watchdog restart limit reached")
 					continue
 				}
 
@@ -144,9 +192,9 @@ func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string
 					continue
 				}
 
-				restartedAt := time.Now().UTC().Format(time.RFC3339)
-				recordRestart(restartedAt)
-				logf("browser watchdog restarted kiosk-browser.service at %s", restartedAt)
+				restartedAt := now.Format(time.RFC3339)
+				recordRestart(now, restartedAt, reason)
+				logf("browser watchdog restart: kiosk-browser.service at %s reason=%s", restartedAt, reason)
 			}
 		}
 	}()
@@ -347,12 +395,49 @@ func runUserSystemctl(args ...string) error {
 	return exec.Command(systemctl, commandArgs...).Run()
 }
 
-func recordRestart(restartedAt string) {
+func restartLimitReached(now time.Time) bool {
+	watchdogMetrics.Lock()
+	defer watchdogMetrics.Unlock()
+
+	if watchdogMetrics.state == watchdogStateLimited {
+		return true
+	}
+
+	cutoff := now.Add(-restartLimitWindow)
+	recentRestarts := make([]time.Time, 0, len(watchdogMetrics.restartTimes))
+
+	for _, restartTime := range watchdogMetrics.restartTimes {
+		if restartTime.After(cutoff) || restartTime.Equal(cutoff) {
+			recentRestarts = append(recentRestarts, restartTime)
+		}
+	}
+
+	watchdogMetrics.restartTimes = recentRestarts
+	return len(watchdogMetrics.restartTimes) >= restartLimit
+}
+
+func recordRestart(restartTime time.Time, restartedAt string, reason string) {
 	watchdogMetrics.Lock()
 	defer watchdogMetrics.Unlock()
 
 	watchdogMetrics.restartCount++
 	watchdogMetrics.lastRestart = restartedAt
+	watchdogMetrics.restartTimes = append(watchdogMetrics.restartTimes, restartTime)
+	watchdogMetrics.history = append(watchdogMetrics.history, RestartEvent{
+		Time:   restartedAt,
+		Reason: reason,
+	})
+
+	if len(watchdogMetrics.history) > restartHistoryLimit {
+		watchdogMetrics.history = watchdogMetrics.history[len(watchdogMetrics.history)-restartHistoryLimit:]
+	}
+}
+
+func setWatchdogState(state string) {
+	watchdogMetrics.Lock()
+	defer watchdogMetrics.Unlock()
+
+	watchdogMetrics.state = state
 }
 
 func readPackageVersion(path string, packageName string) string {

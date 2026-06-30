@@ -144,6 +144,12 @@ Ab Version 0.5.0 startet der `kiosk-agent` einen Hintergrund-Worker, der alle 30
 
 Jeder erfolgreiche Watchdog-Restart erhöht `browser_restart_count` und setzt `browser_last_restart` auf die aktuelle UTC-Zeit. Beide Werte werden über `/api/status` ausgeliefert. Der Worker wird über einen Context gesteuert und beendet sich beim Programmende sauber.
 
+Browser Watchdog Hardening
+
+Ab Version 0.5.1 begrenzt der Watchdog automatische Browser-Neustarts auf maximal fünf Restarts innerhalb von zehn Minuten. Wird dieses Limit erreicht, wechselt `browser_watchdog_state` auf `limited` und es werden keine weiteren automatischen Neustarts ausgeführt.
+
+Der Status liefert zusätzlich `browser_watchdog_state` mit den Zuständen `healthy`, `limited` und `disabled` sowie `browser_restart_history` mit den letzten zehn erfolgreichen Watchdog-Restarts. Jeder Eintrag enthält die UTC-Zeit und den Grund des Neustarts.
+
 Neue Runtime Architektur
 
 Boot
