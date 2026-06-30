@@ -2,6 +2,7 @@ package status
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -9,17 +10,25 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
+	"time"
 
 	"github.com/aschorle/kiosk-client/agent/internal/browser"
 	"github.com/aschorle/kiosk-client/agent/internal/config"
 )
 
-const agentVersion = "0.5.1"
+const (
+	agentVersion = "0.5.3"
+	clockTicks   = 100
+)
 
 var (
-	BuildTime = "unknown"
-	GitCommit = "unknown"
+	BuildTime         = "unknown"
+	GitCommit         = "unknown"
+	agentStartedAt    = time.Now().UTC()
+	httpRequestsTotal atomic.Uint64
+	watchdogChecks    atomic.Uint64
 )
 
 // Status is the public runtime status returned by the local HTTP API.
@@ -69,6 +78,18 @@ type Health struct {
 	Status string `json:"status"`
 }
 
+// Metrics contains runtime counters and memory statistics returned by /api/metrics.
+type Metrics struct {
+	AgentUptimeSeconds   uint64 `json:"agent_uptime_seconds"`
+	BrowserUptimeSeconds uint64 `json:"browser_uptime_seconds"`
+	WatchdogChecks       uint64 `json:"watchdog_checks"`
+	BrowserRestartCount  uint64 `json:"browser_restart_count"`
+	HTTPRequestsTotal    uint64 `json:"http_requests_total"`
+	Goroutines           int    `json:"goroutines"`
+	MemoryAllocBytes     uint64 `json:"memory_alloc_bytes"`
+	MemorySysBytes       uint64 `json:"memory_sys_bytes"`
+}
+
 // Provider builds status responses from static configuration and local system
 // information.
 type Provider struct {
@@ -82,6 +103,48 @@ func NewProvider(cfg config.Config, version string) Provider {
 		config:  cfg,
 		version: version,
 	}
+}
+
+// SetAgentStartTime sets the timestamp used for agent uptime metrics.
+func SetAgentStartTime(startedAt time.Time) {
+	agentStartedAt = startedAt.UTC()
+}
+
+// IncrementHTTPRequest increments the HTTP request counter.
+func IncrementHTTPRequest() {
+	httpRequestsTotal.Add(1)
+}
+
+// IncrementWatchdogCheck increments the watchdog check counter.
+func IncrementWatchdogCheck() {
+	watchdogChecks.Add(1)
+}
+
+// StartWatchdogCheckCounter counts expected watchdog checks until ctx is done.
+func StartWatchdogCheckCounter(ctx context.Context, interval time.Duration) <-chan struct{} {
+	done := make(chan struct{})
+
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+
+	go func() {
+		defer close(done)
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				IncrementWatchdogCheck()
+			}
+		}
+	}()
+
+	return done
 }
 
 // Current returns the current kiosk-client status.
@@ -113,6 +176,23 @@ func (p Provider) Current() Status {
 		DiskTotal:             diskTotal(),
 		DiskAvailable:         diskAvailable(),
 		LoadAverage:           loadAverage(),
+	}
+}
+
+// Metrics returns agent, browser, HTTP, watchdog, and Go runtime metrics.
+func (p Provider) Metrics() Metrics {
+	var memory runtime.MemStats
+	runtime.ReadMemStats(&memory)
+
+	return Metrics{
+		AgentUptimeSeconds:   agentUptimeSeconds(),
+		BrowserUptimeSeconds: browserUptimeSeconds(),
+		WatchdogChecks:       watchdogChecks.Load(),
+		BrowserRestartCount:  browser.RestartCount(),
+		HTTPRequestsTotal:    httpRequestsTotal.Load(),
+		Goroutines:           runtime.NumGoroutine(),
+		MemoryAllocBytes:     memory.Alloc,
+		MemorySysBytes:       memory.Sys,
 	}
 }
 
@@ -325,6 +405,82 @@ func loadAverage() string {
 	}
 
 	return strings.Join(fields[:3], " ")
+}
+
+func agentUptimeSeconds() uint64 {
+	if agentStartedAt.IsZero() {
+		return 0
+	}
+
+	uptime := time.Since(agentStartedAt)
+	if uptime < 0 {
+		return 0
+	}
+
+	return uint64(uptime.Seconds())
+}
+
+func browserUptimeSeconds() uint64 {
+	pid := browser.PID()
+	if pid <= 0 {
+		return 0
+	}
+
+	processStart, ok := processStartSeconds(pid)
+	if !ok {
+		return 0
+	}
+
+	systemUptime, ok := systemUptimeSeconds()
+	if !ok || systemUptime < processStart {
+		return 0
+	}
+
+	return uint64(systemUptime - processStart)
+}
+
+func processStartSeconds(pid int) (float64, bool) {
+	content, err := os.ReadFile(filepath.Join("/proc", strconv.Itoa(pid), "stat"))
+	if err != nil {
+		return 0, false
+	}
+
+	line := string(content)
+	commandEnd := strings.LastIndex(line, ")")
+	if commandEnd < 0 || commandEnd+2 >= len(line) {
+		return 0, false
+	}
+
+	fields := strings.Fields(line[commandEnd+2:])
+	if len(fields) <= 19 {
+		return 0, false
+	}
+
+	startTicks, err := strconv.ParseUint(fields[19], 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return float64(startTicks) / clockTicks, true
+}
+
+func systemUptimeSeconds() (float64, bool) {
+	content, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		return 0, false
+	}
+
+	fields := strings.Fields(string(content))
+	if len(fields) == 0 {
+		return 0, false
+	}
+
+	seconds, err := strconv.ParseFloat(fields[0], 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return seconds, true
 }
 
 func board() string {

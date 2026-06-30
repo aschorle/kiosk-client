@@ -37,6 +37,7 @@ func (s Server) Routes() []Route {
 		{Method: http.MethodGet, Path: "/api/config"},
 		{Method: http.MethodGet, Path: "/api/health"},
 		{Method: http.MethodGet, Path: "/api/info"},
+		{Method: http.MethodGet, Path: "/api/metrics"},
 		{Method: http.MethodGet, Path: "/api/status"},
 		{Method: http.MethodPost, Path: "/api/browser/reload"},
 		{Method: http.MethodPost, Path: "/api/browser/restart"},
@@ -47,7 +48,7 @@ func (s Server) Routes() []Route {
 func (s Server) ListenAndServe() error {
 	server := &http.Server{
 		Addr:    s.addr,
-		Handler: s.mux(),
+		Handler: countRequests(s.mux()),
 	}
 
 	return server.ListenAndServe()
@@ -59,11 +60,19 @@ func (s Server) mux() *http.ServeMux {
 	mux.HandleFunc("/api/config", s.handleConfig)
 	mux.HandleFunc("/api/health", s.handleHealth)
 	mux.HandleFunc("/api/info", s.handleInfo)
+	mux.HandleFunc("/api/metrics", s.handleMetrics)
 	mux.HandleFunc("/api/status", s.handleStatus)
 	mux.HandleFunc("/api/browser/reload", s.handleBrowserReload)
 	mux.HandleFunc("/api/browser/restart", s.handleBrowserRestart)
 
 	return mux
+}
+
+func countRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		status.IncrementHTTPRequest()
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s Server) handleRoot(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +135,20 @@ func (s Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(s.provider.Info()); err != nil {
 		http.Error(w, "failed to encode info", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(s.provider.Metrics()); err != nil {
+		http.Error(w, "failed to encode metrics", http.StatusInternalServerError)
 		return
 	}
 }

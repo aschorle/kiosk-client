@@ -156,6 +156,12 @@ Ab Version 0.5.2 liefert `GET /api/health` den zusammengefassten Systemzustand a
 
 `healthy` bedeutet, dass der Browser läuft und der Watchdog im Zustand `healthy` ist. `degraded` bedeutet, dass der Browser läuft, der Watchdog aber limitiert oder nicht vollständig gesund ist. `error` bedeutet, dass der Browser nicht läuft.
 
+Metrics API
+
+Ab Version 0.5.3 liefert `GET /api/metrics` Laufzeitmetriken des Agents als JSON. Enthalten sind `agent_uptime_seconds`, `browser_uptime_seconds`, `watchdog_checks`, `browser_restart_count`, `http_requests_total`, `goroutines`, `memory_alloc_bytes` und `memory_sys_bytes`.
+
+Jeder HTTP-Request erhöht `http_requests_total`. Jeder Watchdog-Durchlauf erhöht `watchdog_checks`. Die Browser-Laufzeit wird lesend über die aktuelle Browser-PID und die Prozessstartzeit aus `/proc` bestimmt; wenn sie nicht ermittelt werden kann, wird `browser_uptime_seconds` mit `0` ausgeliefert.
+
 Neue Runtime Architektur
 
 Boot

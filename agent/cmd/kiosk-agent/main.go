@@ -15,13 +15,14 @@ import (
 )
 
 const (
-	version          = "0.5.1"
+	version          = "0.5.3"
 	configPath       = "config/client.conf"
 	httpAddr         = ":8080"
 	watchdogInterval = 30 * time.Second
 )
 
 func main() {
+	status.SetAgentStartTime(time.Now().UTC())
 	log.Printf("starting kiosk-agent %s", version)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -45,6 +46,7 @@ func main() {
 	}
 
 	watchdogDone := browser.StartWatchdog(ctx, watchdogInterval, log.Printf)
+	watchdogMetricsDone := status.StartWatchdogCheckCounter(ctx, watchdogInterval)
 	log.Printf("browser watchdog started with interval %s", watchdogInterval)
 	log.Printf("http server listening on %s", httpAddr)
 
@@ -62,4 +64,5 @@ func main() {
 
 	cancel()
 	<-watchdogDone
+	<-watchdogMetricsDone
 }
