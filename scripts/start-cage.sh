@@ -13,7 +13,7 @@ PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 CAGE_BIN=${CAGE_BIN:-cage}
 BROWSER_SCRIPT=$PROJECT_DIR/scripts/start-browser.sh
 CURSOR_THEME_NAME=${CURSOR_THEME_NAME:-kiosk-hidden}
-CURSOR_SIZE=${CURSOR_SIZE:-1}
+CURSOR_SIZE=${CURSOR_SIZE:-24}
 CURSOR_THEME_ROOT=${XDG_RUNTIME_DIR:-/tmp}/kiosk-client-cursors
 
 log_info() {
@@ -34,6 +34,7 @@ find_cage() {
 }
 
 install_hidden_cursor_theme() {
+	theme_dir=$CURSOR_THEME_ROOT/$CURSOR_THEME_NAME
 	cursor_dir=$CURSOR_THEME_ROOT/$CURSOR_THEME_NAME/cursors
 	cursor_file=$cursor_dir/left_ptr
 
@@ -42,13 +43,28 @@ install_hidden_cursor_theme() {
 		return 1
 	fi
 
-	# Minimal valid Xcursor file: 1x1 ARGB pixel with alpha 0.
-	if ! printf '\130\143\165\162\020\000\000\000\000\000\001\000\001\000\000\000\002\000\375\377\001\000\000\000\034\000\000\000\044\000\000\000\002\000\375\377\001\000\000\000\001\000\000\000\001\000\000\000\001\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000' > "$cursor_file"; then
+	if ! printf '[Icon Theme]\nName=%s\nComment=Transparent kiosk cursor\n' "$CURSOR_THEME_NAME" > "$theme_dir/index.theme"; then
+		log_error "Cursor-Theme-Index konnte nicht geschrieben werden: $theme_dir/index.theme"
+		return 1
+	fi
+
+	# Valid Xcursor file: one 24x24 image, all ARGB pixels fully transparent.
+	if ! {
+		printf '\130\143\165\162\020\000\000\000\000\000\001\000\001\000\000\000'
+		printf '\002\000\375\377\030\000\000\000\034\000\000\000'
+		printf '\044\000\000\000\002\000\375\377\030\000\000\000\001\000\000\000'
+		printf '\030\000\000\000\030\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000'
+		pixel_count=0
+		while [ "$pixel_count" -lt 576 ]; do
+			printf '\000\000\000\000'
+			pixel_count=$((pixel_count + 1))
+		done
+	} > "$cursor_file"; then
 		log_error "Transparenter Cursor konnte nicht geschrieben werden: $cursor_file"
 		return 1
 	fi
 
-	for cursor_name in default arrow pointer hand1 hand2 text xterm crosshair move watch progress; do
+	for cursor_name in default arrow left_ptr right_ptr top_left_arrow pointer hand1 hand2 text xterm ibeam crosshair move grab grabbing watch wait progress copy alias context-menu help not-allowed no-drop all-scroll col-resize row-resize n-resize e-resize s-resize w-resize ne-resize nw-resize se-resize sw-resize ew-resize ns-resize nesw-resize nwse-resize; do
 		ln -sf left_ptr "$cursor_dir/$cursor_name"
 	done
 

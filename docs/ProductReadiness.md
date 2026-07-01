@@ -1,6 +1,6 @@
 # Product Readiness
 
-Stand: Version 0.12.4
+Stand: Version 0.12.5
 
 Der produktive Pfad ist ausschliesslich die Appliance Edition fuer Debian oder Armbian Minimal.
 

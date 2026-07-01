@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.12.5
+
+- Transparentes Xcursor-Theme korrigiert: gueltige 24x24-Cursor-Datei mit volltransparenten ARGB-Pixeln und zusaetzlichen Cursor-Aliasnamen.
+
 ## 0.12.4
 
 - Mauszeiger in der Appliance-Runtime ueber ein lokales transparentes Xcursor-Theme ausgeblendet.
