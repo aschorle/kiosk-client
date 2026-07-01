@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.13.3
+
+- Reboot-Berechtigung korrigiert: Installer richtet eine enge sudoers-Regel fuer `/usr/bin/systemctl reboot` ein, der Agent nutzt `sudo /usr/bin/systemctl reboot`.
+
 ## 0.13.2
 
 - Appliance-Installer baut `kiosk-agent` bei jeder erfolgreichen Installation aus den aktuellen Repository-Quellen neu.

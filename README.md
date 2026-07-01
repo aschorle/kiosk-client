@@ -89,7 +89,7 @@ Verwendete REST-Endpunkte:
 
 Der Systemstatus enthaelt die CPU-Temperatur aus `/sys/class/thermal/thermal_zone0/temp`, sofern der Kernel diesen Wert bereitstellt.
 
-`POST /api/system/reboot` loest einen sauberen System-Reboot ueber den lokalen Agent aus.
+`POST /api/system/reboot` loest einen sauberen System-Reboot ueber den lokalen Agent aus. Der Installer richtet dafuer eine eingeschraenkte sudoers-Regel fuer `/usr/bin/systemctl reboot` ein.
 
 ## Browsersteuerung
 
@@ -107,4 +107,4 @@ Nach dem Speichern einer gueltigen URL startet die Appliance-Runtime mit dieser 
 
 ## Version
 
-Aktuelle Version: `0.13.2`
+Aktuelle Version: `0.13.3`

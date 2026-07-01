@@ -16,6 +16,7 @@ kiosk-appliance.service
 "
 AGENT_BINARY="$PROJECT_DIR/kiosk-agent"
 AGENT_SOURCE="./agent/cmd/kiosk-agent"
+SUDOERS_FILE="/etc/sudoers.d/kiosk-client"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/install-common.sh"
@@ -263,6 +264,41 @@ fix_user_home_ownership() {
 	log_success "Besitzrechte fuer Benutzer-Konfiguration gesetzt: $user_config_dir"
 }
 
+configure_reboot_sudoers() {
+	# Allow the kiosk user to trigger exactly one privileged reboot command.
+	kiosk_user=$1
+	temp_file=$SUDOERS_FILE.tmp.$$
+
+	if ! command -v visudo >/dev/null 2>&1; then
+		log_error "visudo wurde nicht gefunden."
+		return 1
+	fi
+
+	if ! printf '%s ALL=(root) NOPASSWD: /usr/bin/systemctl reboot\n' "$kiosk_user" > "$temp_file"; then
+		log_error "sudoers-Datei konnte nicht geschrieben werden: $temp_file"
+		return 1
+	fi
+
+	if ! chmod 0440 "$temp_file"; then
+		rm -f "$temp_file"
+		log_error "Dateirechte fuer sudoers-Datei konnten nicht gesetzt werden: $temp_file"
+		return 1
+	fi
+
+	if ! mv "$temp_file" "$SUDOERS_FILE"; then
+		rm -f "$temp_file"
+		log_error "sudoers-Datei konnte nicht installiert werden: $SUDOERS_FILE"
+		return 1
+	fi
+
+	if ! visudo -cf "$SUDOERS_FILE"; then
+		log_error "sudoers-Syntaxpruefung fehlgeschlagen: $SUDOERS_FILE"
+		return 1
+	fi
+
+	log_success "sudoers-Regel fuer System-Reboot installiert: $SUDOERS_FILE"
+}
+
 install_appliance_runtime() {
 	# Install and enable the appliance user runtime services.
 	if ! require_root; then
@@ -274,6 +310,7 @@ install_appliance_runtime() {
 	user_uid=$(get_user_uid "$kiosk_user")
 
 	ensure_agent_binary "$kiosk_user"
+	configure_reboot_sudoers "$kiosk_user"
 
 	for service_name in $APPLIANCE_USER_SERVICES; do
 		install_service_file "$kiosk_user" "$user_home" "$service_name"

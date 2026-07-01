@@ -294,7 +294,7 @@ func (s Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func rebootSystem() error {
-	return exec.Command("systemctl", "reboot").Run()
+	return exec.Command("sudo", "/usr/bin/systemctl", "reboot").Run()
 }
 
 type errorResponse struct {

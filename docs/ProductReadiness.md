@@ -1,6 +1,6 @@
 # Product Readiness
 
-Stand: Version 0.13.2
+Stand: Version 0.13.3
 
 Der produktive Pfad ist ausschliesslich die Appliance Edition fuer Debian oder Armbian Minimal.
 
@@ -37,7 +37,7 @@ Boot
 
 - Browsersteuerung signalisiert den Browser-Supervisor innerhalb der laufenden Cage-Sitzung
 - Reload und Neustart lassen Cage aktiv und starten nur Chromium neu
-- System-Reboot wird durch den lokalen Agent ausgeloest
+- System-Reboot wird durch den lokalen Agent mit enger sudoers-Regel ausgeloest
 - Config-Speichern ist vom Browser-Neustart getrennt
 - Installation beschreibt nur noch den Appliance-Pfad
 - systemd-Dokumentation beschreibt nur noch User-Units fuer `default.target`
