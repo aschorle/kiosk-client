@@ -11,15 +11,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
 const (
 	defaultName          = "chromium"
 	dpkgStatus          = "/var/lib/dpkg/status"
-	serviceName          = "kiosk-appliance.service"
-	systemctl            = "systemctl"
-	userSystemctl        = "--user"
 	watchdogStateHealthy  = "healthy"
 	watchdogStateLimited  = "limited"
 	watchdogStateDisabled = "disabled"
@@ -81,27 +79,20 @@ func CommandLine() string {
 	return NewRuntime(defaultName).CommandLine()
 }
 
-// Restart restarts the appliance runtime through the systemd user manager.
+// Restart restarts Chromium inside the running appliance session.
 func Restart() error {
 	return RestartService()
 }
 
-// RestartService restarts the appliance runtime through the systemd user manager.
+// RestartService restarts Chromium by terminating the current browser process.
+// Cage exits with its child and systemd restarts the appliance service.
 func RestartService() error {
-	if err := runUserSystemctl("restart", serviceName); err != nil {
-		return fmt.Errorf("appliance runtime restart failed: %w", err)
-	}
-
-	return nil
+	return terminateBrowser("restart")
 }
 
-// ReloadService refreshes the kiosk by restarting the appliance runtime.
+// ReloadService refreshes the kiosk by restarting Chromium inside Cage.
 func ReloadService() error {
-	if err := runUserSystemctl("restart", serviceName); err != nil {
-		return fmt.Errorf("appliance runtime reload failed: %w", err)
-	}
-
-	return nil
+	return terminateBrowser("reload")
 }
 
 // RestartCount returns the number of watchdog-triggered browser restarts.
@@ -188,7 +179,7 @@ func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string
 
 				restartedAt := now.Format(time.RFC3339)
 				recordRestart(now, restartedAt, reason)
-				logf("browser watchdog restart: kiosk-appliance.service at %s reason=%s", restartedAt, reason)
+				logf("browser watchdog restart: chromium at %s reason=%s", restartedAt, reason)
 			}
 		}
 	}()
@@ -253,10 +244,21 @@ type processInfo struct {
 }
 
 func (r Runtime) findProcess() (processInfo, bool) {
-	entries, err := os.ReadDir("/proc")
-	if err != nil {
+	processes := r.findProcesses()
+	if len(processes) == 0 {
 		return processInfo{}, false
 	}
+
+	return processes[0], true
+}
+
+func (r Runtime) findProcesses() []processInfo {
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return nil
+	}
+
+	processes := []processInfo{}
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -274,11 +276,11 @@ func (r Runtime) findProcess() (processInfo, bool) {
 		}
 
 		if r.matches(process) {
-			return process, true
+			processes = append(processes, process)
 		}
 	}
 
-	return processInfo{}, false
+	return processes
 }
 
 func (r Runtime) readProcess(pid int) (processInfo, bool) {
@@ -371,9 +373,80 @@ func readExecutableVersion(executable string) string {
 	return strings.TrimSpace(string(output))
 }
 
-func runUserSystemctl(args ...string) error {
-	commandArgs := append([]string{userSystemctl}, args...)
-	return exec.Command(systemctl, commandArgs...).Run()
+func terminateBrowser(action string) error {
+	processes := NewRuntime(defaultName).findProcesses()
+	if len(processes) == 0 {
+		return fmt.Errorf("browser %s failed: no chromium process found", action)
+	}
+
+	if err := signalProcesses(processes, syscall.SIGTERM); err != nil {
+		return fmt.Errorf("browser %s failed: %w", action, err)
+	}
+
+	if waitForProcessesExit(processes, 5*time.Second) {
+		return nil
+	}
+
+	remaining := runningProcesses(processes)
+	if len(remaining) == 0 {
+		return nil
+	}
+
+	if err := signalProcesses(remaining, syscall.SIGKILL); err != nil {
+		return fmt.Errorf("browser %s kill failed: %w", action, err)
+	}
+
+	if waitForProcessesExit(remaining, 2*time.Second) {
+		return nil
+	}
+
+	return fmt.Errorf("browser %s failed: chromium processes still running", action)
+}
+
+func signalProcesses(processes []processInfo, signal syscall.Signal) error {
+	for _, process := range processes {
+		if process.pid <= 0 {
+			continue
+		}
+
+		if err := syscall.Kill(process.pid, signal); err != nil && err != syscall.ESRCH {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func waitForProcessesExit(processes []processInfo, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+
+	for {
+		if len(runningProcesses(processes)) == 0 {
+			return true
+		}
+
+		if time.Now().After(deadline) {
+			return false
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func runningProcesses(processes []processInfo) []processInfo {
+	running := []processInfo{}
+
+	for _, process := range processes {
+		if process.pid <= 0 {
+			continue
+		}
+
+		if err := syscall.Kill(process.pid, 0); err == nil {
+			running = append(running, process)
+		}
+	}
+
+	return running
 }
 
 func restartLimitReached(now time.Time) bool {

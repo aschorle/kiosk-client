@@ -1,6 +1,6 @@
 # Product Readiness
 
-Stand: Version 0.12.6
+Stand: Version 0.12.7
 
 Der produktive Pfad ist ausschliesslich die Appliance Edition fuer Debian oder Armbian Minimal.
 
@@ -34,8 +34,8 @@ Boot
 
 ### ERSETZT
 
-- Browsersteuerung steuert jetzt `kiosk-appliance.service`
-- Reload startet die Appliance-Runtime neu
+- Browsersteuerung beendet Chromium innerhalb der laufenden Cage-Sitzung
+- Reload und Neustart nutzen den automatischen Neustart der Appliance-Unit
 - Config-Speichern ist vom Browser-Neustart getrennt
 - Installation beschreibt nur noch den Appliance-Pfad
 - systemd-Dokumentation beschreibt nur noch User-Units fuer `default.target`

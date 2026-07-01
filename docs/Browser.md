@@ -43,10 +43,4 @@ Sobald eine gueltige URL gespeichert wurde, startet Chromium mit dieser Zielseit
 
 ## Steuerung
 
-Reload und Neustart erfolgen ueber:
-
-```text
-kiosk-appliance.service
-```
-
-Die lokale API startet diese Unit neu. Dadurch startet Cage Chromium erneut und liest die aktuelle Konfiguration.
+Reload und Neustart beenden den laufenden Chromium-Prozess innerhalb der bestehenden Appliance-Sitzung. Cage beendet sich mit Chromium, und `kiosk-appliance.service` startet die Sitzung ueber `Restart=always` neu.

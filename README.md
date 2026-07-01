@@ -87,13 +87,7 @@ Verwendete REST-Endpunkte:
 
 ## Browsersteuerung
 
-Browseraktionen steuern ausschliesslich die Appliance-Runtime:
-
-```bash
-systemctl --user restart kiosk-appliance.service
-```
-
-`POST /api/browser/reload` und `POST /api/browser/restart` starten die Appliance-Runtime neu. Dadurch startet Cage Chromium erneut und liest die aktuelle Konfiguration.
+Browseraktionen beenden den laufenden Chromium-Prozess innerhalb der bestehenden Appliance-Sitzung. Cage beendet sich mit Chromium, und `kiosk-appliance.service` startet die Sitzung ueber `Restart=always` neu.
 
 ## First Boot
 
@@ -107,4 +101,4 @@ Nach dem Speichern einer gueltigen URL startet die Appliance-Runtime mit dieser 
 
 ## Version
 
-Aktuelle Version: `0.12.6`
+Aktuelle Version: `0.12.7`

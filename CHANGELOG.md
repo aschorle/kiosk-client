@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.12.7
+
+- Browser-Reload und Browser-Neustart beenden jetzt Chromium innerhalb der laufenden Cage-Sitzung statt `kiosk-appliance.service` direkt neu zu starten.
+
 ## 0.12.6
 
 - Board-Erkennung fuer Raspberry Pi 3 Model B Rev 1.2 ergaenzt; der bestehende Raspberry-Pi-Installer bleibt zustaendig.
