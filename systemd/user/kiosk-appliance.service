@@ -10,7 +10,7 @@ After=default.target
 
 [Service]
 WorkingDirectory=%h/kiosk-client
-ExecStart=/usr/bin/dbus-run-session -- /usr/bin/cage -- %h/kiosk-client/scripts/start-browser.sh
+ExecStart=/usr/bin/dbus-run-session -- %h/kiosk-client/scripts/start-cage.sh
 Restart=always
 RestartSec=3
 

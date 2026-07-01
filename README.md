@@ -24,6 +24,7 @@ Boot
 -> kiosk-agent.service
 -> kiosk-appliance.service
 -> dbus-run-session
+-> scripts/start-cage.sh
 -> cage
 -> scripts/start-browser.sh
 -> Chromium
@@ -106,4 +107,4 @@ Nach dem Speichern einer gueltigen URL startet die Appliance-Runtime mit dieser 
 
 ## Version
 
-Aktuelle Version: `0.12.3`
+Aktuelle Version: `0.12.4`

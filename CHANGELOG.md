@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.12.4
+
+- Mauszeiger in der Appliance-Runtime ueber ein lokales transparentes Xcursor-Theme ausgeblendet.
+
 ## 0.12.3
 
 - Appliance-Installer korrigiert Ownership fuer erzeugte Benutzer-Konfigurationspfade unter `~/.config`.

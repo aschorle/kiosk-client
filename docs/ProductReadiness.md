@@ -1,6 +1,6 @@
 # Product Readiness
 
-Stand: Version 0.12.3
+Stand: Version 0.12.4
 
 Der produktive Pfad ist ausschliesslich die Appliance Edition fuer Debian oder Armbian Minimal.
 
@@ -14,6 +14,7 @@ Boot
 -> kiosk-agent.service
 -> kiosk-appliance.service
 -> dbus-run-session
+-> scripts/start-cage.sh
 -> cage
 -> scripts/start-browser.sh
 -> Chromium
