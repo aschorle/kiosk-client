@@ -245,6 +245,24 @@ enable_service_without_session() {
 	log_success "$service_name fuer default.target aktiviert."
 }
 
+fix_user_home_ownership() {
+	# Ensure paths created below the target user's home are owned by that user.
+	kiosk_user=$1
+	user_home=$2
+	user_config_dir=$user_home/.config
+
+	if [ ! -e "$user_config_dir" ]; then
+		return 0
+	fi
+
+	if ! chown -R "$kiosk_user:$kiosk_user" "$user_config_dir"; then
+		log_error "Besitzrechte fuer Benutzer-Konfiguration konnten nicht gesetzt werden: $user_config_dir"
+		return 1
+	fi
+
+	log_success "Besitzrechte fuer Benutzer-Konfiguration gesetzt: $user_config_dir"
+}
+
 install_appliance_runtime() {
 	# Install and enable the appliance user runtime services.
 	if ! require_root; then
@@ -274,6 +292,8 @@ install_appliance_runtime() {
 		done
 		log_warn "User session not active; appliance services start after tty1 autologin."
 	fi
+
+	fix_user_home_ownership "$kiosk_user" "$user_home"
 
 	log_success "Appliance Runtime installiert."
 }

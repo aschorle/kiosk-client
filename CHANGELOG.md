@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.12.3
+
+- Appliance-Installer korrigiert Ownership fuer erzeugte Benutzer-Konfigurationspfade unter `~/.config`.
+
 ## 0.12.2
 
 - Chromium-Startparameter fuer Chromium 149 auf Debian Trixie angepasst: Crashpad/Breakpad-Deaktivierung entfernt.
