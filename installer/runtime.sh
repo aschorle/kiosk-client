@@ -156,18 +156,18 @@ build_agent_binary() {
 }
 
 ensure_agent_binary() {
-	# Ensure kiosk-agent exists before installing or enabling its service.
+	# Build kiosk-agent from the current repository sources before installing or
+	# enabling its service. The repository is the source of truth.
 	kiosk_user=$1
 
 	if [ -x "$AGENT_BINARY" ]; then
-		log_success "kiosk-agent Binary vorhanden: $AGENT_BINARY"
-		return 0
-	fi
-
-	if [ -e "$AGENT_BINARY" ]; then
-		log_warn "kiosk-agent existiert, ist aber nicht ausfuehrbar und wird neu gebaut: $AGENT_BINARY"
+		log_info "kiosk-agent Binary vorhanden und wird aktualisiert: $AGENT_BINARY"
 	else
-		log_info "kiosk-agent Binary fehlt: $AGENT_BINARY"
+		if [ -e "$AGENT_BINARY" ]; then
+			log_warn "kiosk-agent existiert, ist aber nicht ausfuehrbar und wird neu gebaut: $AGENT_BINARY"
+		else
+			log_info "kiosk-agent Binary fehlt und wird gebaut: $AGENT_BINARY"
+		fi
 	fi
 
 	if ! ensure_go_available; then

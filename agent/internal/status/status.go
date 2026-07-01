@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	AgentVersion       = "0.13.1"
+	AgentVersion       = "0.13.2"
 	clockTicks         = 100
 	cpuTemperaturePath = "/sys/class/thermal/thermal_zone0/temp"
 )

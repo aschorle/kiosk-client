@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.13.2
+
+- Appliance-Installer baut `kiosk-agent` bei jeder erfolgreichen Installation aus den aktuellen Repository-Quellen neu.
+
 ## 0.13.1
 
 - Kiosk-Konfigurationsseite um `System Reboot` erweitert; neuer Agent-Endpunkt `POST /api/system/reboot` loest einen sauberen System-Reboot aus.
