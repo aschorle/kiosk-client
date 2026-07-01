@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.12.2
+
+- Chromium-Startparameter fuer Chromium 149 auf Debian Trixie angepasst: Crashpad/Breakpad-Deaktivierung entfernt.
+
 ## 0.12.1
 
 - Appliance-Installer installiert Go automatisch, wenn `kiosk-agent` fehlt und kein Go vorhanden ist.

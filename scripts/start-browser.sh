@@ -221,8 +221,6 @@ start_browser() {
 		--no-first-run \
 		--disable-session-crashed-bubble \
 		--disable-infobars \
-		--disable-crash-reporter \
-		--disable-breakpad \
 		--disable-background-networking \
 		--disable-background-timer-throttling \
 		--disable-renderer-backgrounding \
