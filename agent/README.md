@@ -9,6 +9,6 @@ Der `kiosk-agent` ist der lokale Prozess fuer Administration, API, Status und Me
 - REST-Endpunkte unter `/api/...` bereitstellen
 - Status-, Health- und Metrikdaten sammeln
 - Browserzustand lesen
-- Browserzustand durch Beenden des laufenden Chromium-Prozesses neu starten
+- Browseraktionen per Signal an den Browser-Supervisor anfordern
 
 Der Agent verwaltet genau dieses eine lokale Geraet.

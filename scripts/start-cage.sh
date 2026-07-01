@@ -3,7 +3,7 @@
 # Start the Cage runtime for kiosk-client.
 #
 # Purpose:
-#   Starts Cage and runs scripts/start-browser.sh inside it. This script owns
+#   Starts Cage and runs scripts/browser-supervisor.sh inside it. This script owns
 #   the appliance runtime path.
 
 set -eu
@@ -11,7 +11,7 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 CAGE_BIN=${CAGE_BIN:-cage}
-BROWSER_SCRIPT=$PROJECT_DIR/scripts/start-browser.sh
+SUPERVISOR_SCRIPT=$PROJECT_DIR/scripts/browser-supervisor.sh
 CURSOR_THEME_NAME=${CURSOR_THEME_NAME:-kiosk-hidden}
 CURSOR_SIZE=${CURSOR_SIZE:-24}
 CURSOR_THEME_ROOT=${XDG_RUNTIME_DIR:-/tmp}/kiosk-client-cursors
@@ -81,8 +81,8 @@ start_cage() {
 		return 1
 	fi
 
-	if [ ! -x "$BROWSER_SCRIPT" ]; then
-		log_error "Browser-Startskript ist nicht ausfuehrbar: $BROWSER_SCRIPT"
+	if [ ! -x "$SUPERVISOR_SCRIPT" ]; then
+		log_error "Browser-Supervisor ist nicht ausfuehrbar: $SUPERVISOR_SCRIPT"
 		return 1
 	fi
 
@@ -95,9 +95,9 @@ start_cage() {
 
 	log_info "Working Directory: $PROJECT_DIR"
 	log_info "Starte Cage: $cage_path"
-	log_info "Starte Browser in Cage: $BROWSER_SCRIPT"
+	log_info "Starte Browser-Supervisor in Cage: $SUPERVISOR_SCRIPT"
 
-	exec "$cage_path" -- "$BROWSER_SCRIPT"
+	exec "$cage_path" -- "$SUPERVISOR_SCRIPT"
 }
 
 main() {

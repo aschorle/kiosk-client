@@ -16,14 +16,19 @@ import (
 )
 
 const (
-	defaultName          = "chromium"
-	dpkgStatus          = "/var/lib/dpkg/status"
-	watchdogStateHealthy  = "healthy"
-	watchdogStateLimited  = "limited"
-	watchdogStateDisabled = "disabled"
-	restartLimit          = 5
-	restartLimitWindow    = 10 * time.Minute
-	restartHistoryLimit   = 10
+	defaultName               = "chromium"
+	dpkgStatus               = "/var/lib/dpkg/status"
+	runtimeDirName           = "kiosk-client"
+	supervisorPIDFileName    = "browser-supervisor.pid"
+	supervisorScriptName     = "browser-supervisor.sh"
+	watchdogStateHealthy     = "healthy"
+	watchdogStateLimited     = "limited"
+	watchdogStateDisabled    = "disabled"
+	restartLimit             = 5
+	restartLimitWindow       = 10 * time.Minute
+	restartHistoryLimit      = 10
+	supervisorSignalReload   = syscall.SIGUSR1
+	supervisorSignalRestart  = syscall.SIGUSR2
 )
 
 var watchdogMetrics struct {
@@ -84,15 +89,14 @@ func Restart() error {
 	return RestartService()
 }
 
-// RestartService restarts Chromium by terminating the current browser process.
-// Cage exits with its child and systemd restarts the appliance service.
+// RestartService asks the browser supervisor to restart Chromium.
 func RestartService() error {
-	return terminateBrowser("restart")
+	return signalSupervisor("restart", supervisorSignalRestart)
 }
 
-// ReloadService refreshes the kiosk by restarting Chromium inside Cage.
+// ReloadService asks the browser supervisor to reload Chromium.
 func ReloadService() error {
-	return terminateBrowser("reload")
+	return signalSupervisor("reload", supervisorSignalReload)
 }
 
 // RestartCount returns the number of watchdog-triggered browser restarts.
@@ -373,80 +377,55 @@ func readExecutableVersion(executable string) string {
 	return strings.TrimSpace(string(output))
 }
 
-func terminateBrowser(action string) error {
-	processes := NewRuntime(defaultName).findProcesses()
-	if len(processes) == 0 {
-		return fmt.Errorf("browser %s failed: no chromium process found", action)
-	}
-
-	if err := signalProcesses(processes, syscall.SIGTERM); err != nil {
+func signalSupervisor(action string, signal syscall.Signal) error {
+	pid, err := supervisorPID()
+	if err != nil {
 		return fmt.Errorf("browser %s failed: %w", action, err)
 	}
 
-	if waitForProcessesExit(processes, 5*time.Second) {
-		return nil
-	}
-
-	remaining := runningProcesses(processes)
-	if len(remaining) == 0 {
-		return nil
-	}
-
-	if err := signalProcesses(remaining, syscall.SIGKILL); err != nil {
-		return fmt.Errorf("browser %s kill failed: %w", action, err)
-	}
-
-	if waitForProcessesExit(remaining, 2*time.Second) {
-		return nil
-	}
-
-	return fmt.Errorf("browser %s failed: chromium processes still running", action)
-}
-
-func signalProcesses(processes []processInfo, signal syscall.Signal) error {
-	for _, process := range processes {
-		if process.pid <= 0 {
-			continue
-		}
-
-		if err := syscall.Kill(process.pid, signal); err != nil && err != syscall.ESRCH {
-			return err
-		}
+	if err := syscall.Kill(pid, signal); err != nil {
+		return fmt.Errorf("browser %s failed: supervisor signal failed: %w", action, err)
 	}
 
 	return nil
 }
 
-func waitForProcessesExit(processes []processInfo, timeout time.Duration) bool {
-	deadline := time.Now().Add(timeout)
-
-	for {
-		if len(runningProcesses(processes)) == 0 {
-			return true
-		}
-
-		if time.Now().After(deadline) {
-			return false
-		}
-
-		time.Sleep(100 * time.Millisecond)
+func supervisorPID() (int, error) {
+	pidPath := supervisorPIDPath()
+	content, err := os.ReadFile(pidPath)
+	if err != nil {
+		return 0, fmt.Errorf("browser supervisor not running: %s", pidPath)
 	}
+
+	pidText := strings.TrimSpace(string(content))
+	pid, err := strconv.Atoi(pidText)
+	if err != nil || pid <= 0 {
+		return 0, fmt.Errorf("invalid browser supervisor pid: %q", pidText)
+	}
+
+	if !isSupervisorProcess(pid) {
+		return 0, fmt.Errorf("browser supervisor not running: pid %d", pid)
+	}
+
+	return pid, nil
 }
 
-func runningProcesses(processes []processInfo) []processInfo {
-	running := []processInfo{}
-
-	for _, process := range processes {
-		if process.pid <= 0 {
-			continue
-		}
-
-		if err := syscall.Kill(process.pid, 0); err == nil {
-			running = append(running, process)
-		}
+func supervisorPIDPath() string {
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	if runtimeDir == "" {
+		runtimeDir = filepath.Join("/run/user", strconv.Itoa(os.Getuid()))
 	}
 
-	return running
+	return filepath.Join(runtimeDir, runtimeDirName, supervisorPIDFileName)
+}
+
+func isSupervisorProcess(pid int) bool {
+	commandLine, err := readCommandLine(filepath.Join("/proc", strconv.Itoa(pid), "cmdline"))
+	if err != nil {
+		return false
+	}
+
+	return strings.Contains(commandLine, supervisorScriptName)
 }
 
 func restartLimitReached(now time.Time) bool {

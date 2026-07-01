@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	AgentVersion = "0.12.7"
+	AgentVersion = "0.12.9"
 	clockTicks    = 100
 )
 

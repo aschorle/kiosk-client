@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.12.9
+
+- Browser-Supervisor fuer die Appliance-Runtime eingefuehrt: Reload und Neustart laufen per `SIGUSR1`/`SIGUSR2`, ohne Cage zu beenden.
+
 ## 0.12.7
 
 - Browser-Reload und Browser-Neustart beenden jetzt Chromium innerhalb der laufenden Cage-Sitzung statt `kiosk-appliance.service` direkt neu zu starten.

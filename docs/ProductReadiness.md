@@ -1,6 +1,6 @@
 # Product Readiness
 
-Stand: Version 0.12.7
+Stand: Version 0.12.9
 
 Der produktive Pfad ist ausschliesslich die Appliance Edition fuer Debian oder Armbian Minimal.
 
@@ -16,6 +16,7 @@ Boot
 -> dbus-run-session
 -> scripts/start-cage.sh
 -> cage
+-> scripts/browser-supervisor.sh
 -> scripts/start-browser.sh
 -> Chromium
 -> konfigurierte URL
@@ -34,8 +35,8 @@ Boot
 
 ### ERSETZT
 
-- Browsersteuerung beendet Chromium innerhalb der laufenden Cage-Sitzung
-- Reload und Neustart nutzen den automatischen Neustart der Appliance-Unit
+- Browsersteuerung signalisiert den Browser-Supervisor innerhalb der laufenden Cage-Sitzung
+- Reload und Neustart lassen Cage aktiv und starten nur Chromium neu
 - Config-Speichern ist vom Browser-Neustart getrennt
 - Installation beschreibt nur noch den Appliance-Pfad
 - systemd-Dokumentation beschreibt nur noch User-Units fuer `default.target`
@@ -44,6 +45,7 @@ Boot
 
 - `chromium-browser` als Erkennungsname: wird fuer Debian-/Armbian-Images mit abweichendem Binary-Namen benoetigt.
 - `scripts/start-cage.sh`: wird von der Appliance-Runtime direkt verwendet.
+- `scripts/browser-supervisor.sh`: bleibt als Cage-Child aktiv und steuert Chromium per Signal.
 - Board-Installer fuer Radxa und Raspberry Pi: delegieren auf das gemeinsame Appliance-Profil.
 - `installer/install-common.sh`: gemeinsame Pruef- und Logging-Funktionen.
 - `installer/verify.sh`: read-only Vorabpruefungen.

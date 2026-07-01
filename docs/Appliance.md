@@ -12,7 +12,9 @@ Boot
 -> kiosk-agent.service
 -> kiosk-appliance.service
 -> dbus-run-session
+-> scripts/start-cage.sh
 -> cage
+-> scripts/browser-supervisor.sh
 -> scripts/start-browser.sh
 -> Chromium
 -> URL aus config/client.conf

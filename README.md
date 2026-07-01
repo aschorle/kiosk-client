@@ -26,6 +26,7 @@ Boot
 -> dbus-run-session
 -> scripts/start-cage.sh
 -> cage
+-> scripts/browser-supervisor.sh
 -> scripts/start-browser.sh
 -> Chromium
 -> konfigurierte URL
@@ -87,7 +88,7 @@ Verwendete REST-Endpunkte:
 
 ## Browsersteuerung
 
-Browseraktionen beenden den laufenden Chromium-Prozess innerhalb der bestehenden Appliance-Sitzung. Cage beendet sich mit Chromium, und `kiosk-appliance.service` startet die Sitzung ueber `Restart=always` neu.
+Browseraktionen senden Signale an `scripts/browser-supervisor.sh`. Der Supervisor startet Chromium innerhalb der laufenden Cage-Sitzung neu; Cage bleibt dabei aktiv. `kiosk-appliance.service` bleibt nur fuer den kompletten Runtime-Crash zustaendig.
 
 ## First Boot
 
@@ -101,4 +102,4 @@ Nach dem Speichern einer gueltigen URL startet die Appliance-Runtime mit dieser 
 
 ## Version
 
-Aktuelle Version: `0.12.7`
+Aktuelle Version: `0.12.9`

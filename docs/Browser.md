@@ -9,11 +9,12 @@ Chromium ist die einzige sichtbare Anwendung der Appliance.
 ```text
 dbus-run-session
 -> cage
+-> scripts/browser-supervisor.sh
 -> scripts/start-browser.sh
 -> chromium
 ```
 
-`scripts/start-browser.sh` liest `config/client.conf`, ermittelt Chromium und startet den Browser im Kioskmodus.
+`scripts/browser-supervisor.sh` bleibt als langlebiger Cage-Child-Prozess aktiv. Es startet `scripts/start-browser.sh`, das `config/client.conf` liest, Chromium ermittelt und den Browser im Kioskmodus startet.
 
 ## URL
 
@@ -43,4 +44,9 @@ Sobald eine gueltige URL gespeichert wurde, startet Chromium mit dieser Zielseit
 
 ## Steuerung
 
-Reload und Neustart beenden den laufenden Chromium-Prozess innerhalb der bestehenden Appliance-Sitzung. Cage beendet sich mit Chromium, und `kiosk-appliance.service` startet die Sitzung ueber `Restart=always` neu.
+Reload und Neustart werden per Signal an `scripts/browser-supervisor.sh` angefordert:
+
+- `SIGUSR1`: Reload
+- `SIGUSR2`: Neustart
+
+Der Supervisor beendet nur sein Chromium-Child und startet es anschliessend neu. Cage bleibt dabei aktiv.
