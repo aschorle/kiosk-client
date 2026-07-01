@@ -1,6 +1,6 @@
 # Product Readiness
 
-Stand: Version 0.13.5
+Stand: Version 0.13.6
 
 Der produktive Pfad ist ausschliesslich die Appliance Edition fuer Debian oder Armbian Minimal.
 
@@ -56,8 +56,5 @@ Boot
 
 ## Offene Punkte bis 1.0
 
-- Installation auf frischen Bookworm- und Trixie-Minimalsystemen erneut verifizieren.
-- Release-Artefakt mit vorgebautem `kiosk-agent` definieren.
-- Admin-Oberflaeche final polieren.
-- CPU-Temperaturanzeige auf allen Zielplattformen verifizieren.
-- Dokumentation fuer Betrieb und Update abschliessen.
+- Keine technischen Blocker fuer v1.0.0-rc1 bekannt.
+- Weitere Arbeiten bis 1.0 beschraenken sich auf Release-Verifikation, Betrieb und Update-Dokumentation.

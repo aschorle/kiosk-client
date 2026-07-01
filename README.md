@@ -112,4 +112,4 @@ Nach dem Speichern einer gueltigen URL startet die Appliance-Runtime mit dieser 
 
 ## Version
 
-Aktuelle Version: `0.13.5`
+Aktuelle Version: `0.13.6`

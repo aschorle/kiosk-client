@@ -3,7 +3,7 @@
 ## Bis Version 1.0
 
 - Installation auf frischen Debian-/Armbian-Minimalsystemen verifizieren
-- Release-Artefakt mit vorgebautem `kiosk-agent` festlegen
+- Release-Checkliste fuer den reproduzierbaren Installer-Build abschliessen
 - lokale Administration final pruefen
 - Betriebsdokumentation abschliessen
 - Update-Ablauf dokumentieren

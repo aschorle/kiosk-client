@@ -25,9 +25,11 @@ Wenn `KIOSK_USER` nicht gesetzt ist, verwendet der Installer den Benutzer aus `S
 3. Debian-/Armbian-Version ueber `/etc/os-release` pruefen
 4. Board erkennen
 5. Appliance-Pakete installieren
-6. `kiosk-agent` im Entwicklungsmodus bauen oder im Release-Modus pruefen
-7. systemd user services installieren
-8. tty1 Autologin aktivieren
+6. Go bei Bedarf installieren
+7. `kiosk-agent` immer aus den aktuellen Repository-Quellen bauen
+8. sudoers-Regel fuer System-Reboot installieren
+9. systemd user services installieren
+10. tty1 Autologin aktivieren
 
 ## Pakete
 
@@ -38,6 +40,7 @@ Der Installer installiert nur die Appliance-Pakete:
 - `cage`
 - `dbus`
 - `dbus-user-session`
+- `fonts-noto-color-emoji`
 
 ## systemd
 
@@ -60,15 +63,19 @@ getty@tty1
 
 ## Agent-Binary
 
-Development Mode:
+Der Installer baut `kiosk-agent` bei jeder erfolgreichen Installation neu aus den aktuellen Repository-Quellen.
 
-- Wenn `go` vorhanden ist, baut der Installer `kiosk-agent` immer neu.
+- Wenn `go` fehlt, installiert der Installer `golang-go` automatisch.
 - Buildfehler brechen die Installation ab.
+- Rechte und Besitzer des erzeugten Binaries werden nach dem Build gesetzt.
 
-Release Mode:
+## Abschluss
 
-- Wenn `go` fehlt, muss ein ausfuehrbares `kiosk-agent`-Binary vorhanden sein.
-- Fehlt das Binary, bricht der Installer mit klarer Meldung ab.
+Nach erfolgreicher Installation erfolgt kein automatischer Reboot. Der Installer fordert am Ende zu folgendem Befehl auf:
+
+```bash
+sudo reboot
+```
 
 ## Debugging
 

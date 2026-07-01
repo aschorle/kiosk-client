@@ -15,6 +15,7 @@ Der `kiosk-agent` stellt eine lokale HTTP-API auf Port `8080` bereit.
 - `PUT /api/config`
 - `POST /api/browser/reload`
 - `POST /api/browser/restart`
+- `POST /api/system/reboot`
 
 Schreibende Endpunkte akzeptieren optional `Authorization: Bearer <AUTH_TOKEN>`.
 Wenn `AUTH_TOKEN` leer ist, sind lokale Schreibzugriffe ohne Token erlaubt.
@@ -27,10 +28,14 @@ Wenn `AUTH_TOKEN` leer ist, sind lokale Schreibzugriffe ohne Token erlaubt.
 
 ## Browsersteuerung
 
-Reload und Neustart starten die Appliance-Runtime neu:
+Reload und Neustart werden per Signal an den Browser-Supervisor angefordert:
 
 ```text
-kiosk-appliance.service
+scripts/browser-supervisor.sh
 ```
 
-Dadurch startet Cage Chromium erneut und liest die aktuelle Konfiguration.
+Der Supervisor startet Chromium innerhalb der laufenden Cage-Sitzung neu.
+
+## System
+
+`POST /api/system/reboot` loest ueber den lokalen Agent einen sauberen System-Reboot aus.

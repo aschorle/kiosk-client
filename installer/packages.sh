@@ -20,16 +20,3 @@ dbus
 dbus-user-session
 fonts-noto-color-emoji
 "
-
-# Deprecated package groups are intentionally empty.
-COMMON_PACKAGES=""
-KIOSK_PACKAGES="$APPLIANCE_PACKAGES"
-
-# Optional development and diagnostics packages. Not used by Appliance Edition.
-DEV_PACKAGES=""
-
-# Radxa-specific packages are intentionally undefined in this phase.
-RADXA_PACKAGES=""
-
-# Raspberry Pi specific packages are intentionally undefined in this phase.
-RPI_PACKAGES=""

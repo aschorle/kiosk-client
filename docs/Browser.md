@@ -33,9 +33,6 @@ Sobald eine gueltige URL gespeichert wurde, startet Chromium mit dieser Zielseit
 - `--no-first-run`
 - `--disable-session-crashed-bubble`
 - `--disable-infobars`
-- `--disable-gpu`
-- `--disable-crash-reporter`
-- `--disable-breakpad`
 - `--disable-background-networking`
 - `--disable-background-timer-throttling`
 - `--disable-renderer-backgrounding`

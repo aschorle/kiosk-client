@@ -5,7 +5,7 @@ Der kiosk-client ist eine lokale Appliance fuer ein einzelnes Geraet.
 ## Komponenten
 
 - Agent: lokale API und Weboberflaeche
-- Browser: lesende Laufzeitinformationen und systemd-Steuerung der Appliance-Runtime
+- Browser: lesende Laufzeitinformationen und Signale an den Browser-Supervisor
 - Config: `config/client.conf`
 - Installer: Appliance-Installation
 - Runtime: systemd user services, Cage, Chromium

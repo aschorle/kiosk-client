@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.13.6
+
+- Repository-Audit vor Code Freeze durchgefuehrt.
+- Veraltete Dokumentation zu Browsersteuerung, Chromium-Flags, Installer-Buildpfad und Appliance-Paketen bereinigt.
+
 ## 0.13.5
 
 - `fonts-noto-color-emoji` in die Appliance-Paketliste aufgenommen.

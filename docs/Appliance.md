@@ -41,6 +41,7 @@ sudo KIOSK_USER=rock ./installer/install.sh
 - `cage`
 - `dbus`
 - `dbus-user-session`
+- `fonts-noto-color-emoji`
 
 ## Betrieb
 
