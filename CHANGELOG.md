@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.12.6
+
+- Board-Erkennung fuer Raspberry Pi 3 Model B Rev 1.2 ergaenzt; der bestehende Raspberry-Pi-Installer bleibt zustaendig.
+
 ## 0.12.5
 
 - Transparentes Xcursor-Theme korrigiert: gueltige 24x24-Cursor-Datei mit volltransparenten ARGB-Pixeln und zusaetzlichen Cursor-Aliasnamen.

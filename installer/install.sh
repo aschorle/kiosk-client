@@ -51,8 +51,8 @@ dispatch_board_installer() {
 			log_info "Starte Radxa Rock 4C+ Installer."
 			sh "$SCRIPT_DIR/install-radxa.sh"
 			;;
-		raspberry-pi-4)
-			log_info "Starte Raspberry Pi 4 Installer."
+		raspberry-pi-3|raspberry-pi-4)
+			log_info "Starte Raspberry Pi Installer."
 			sh "$SCRIPT_DIR/install-rpi.sh"
 			;;
 		*)

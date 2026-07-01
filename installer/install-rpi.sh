@@ -1,9 +1,9 @@
 #!/bin/sh
 #
-# Raspberry Pi 4 Appliance Edition installer workflow.
+# Raspberry Pi Appliance Edition installer workflow.
 #
 # Purpose:
-#   Performs the Raspberry Pi 4 Appliance installation workflow for
+#   Performs the Raspberry Pi Appliance installation workflow for
 #   kiosk-client. This file only verifies the target board and delegates to the
 #   minimal Appliance installer.
 
@@ -34,12 +34,12 @@ ensure_rpi_board() {
 		return 1
 	fi
 
-	if [ "$board" = "raspberry-pi-4" ]; then
-		log_success "Raspberry Pi 4 erkannt."
+	if [ "$board" = "raspberry-pi-3" ] || [ "$board" = "raspberry-pi-4" ]; then
+		log_success "Raspberry Pi erkannt: $board."
 		return 0
 	fi
 
-	log_error "Dieses Skript ist nur fuer Raspberry Pi 4 vorgesehen. Erkannt: $board."
+	log_error "Dieses Skript ist nur fuer Raspberry Pi vorgesehen. Erkannt: $board."
 	return 1
 }
 

@@ -149,7 +149,7 @@ check_diskspace() {
 
 detect_board() {
 	# Detect the supported target board from device-tree or CPU information.
-	# Prints one of: radxa-rock-4c-plus, raspberry-pi-4.
+	# Prints one of: radxa-rock-4c-plus, raspberry-pi-3, raspberry-pi-4.
 	# Returns 1 when the board cannot be identified as supported.
 	board_model=""
 
@@ -164,6 +164,10 @@ detect_board() {
 	case "$board_model" in
 		*"Radxa ROCK 4C+"*|*"ROCK 4C+"*)
 			printf '%s\n' "radxa-rock-4c-plus"
+			return 0
+			;;
+		*"Raspberry Pi 3 Model B Rev 1.2"*)
+			printf '%s\n' "raspberry-pi-3"
 			return 0
 			;;
 		*"Raspberry Pi 4"*)
