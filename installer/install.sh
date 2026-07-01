@@ -62,6 +62,16 @@ dispatch_board_installer() {
 	esac
 }
 
+print_completion_message() {
+	log_success "Appliance erfolgreich installiert."
+	printf '\n'
+	printf '%s\n' "Ein Neustart ist erforderlich."
+	printf '\n'
+	printf '%s\n' "Bitte jetzt ausführen:"
+	printf '\n'
+	printf '%s\n' "sudo reboot"
+}
+
 main() {
 	# Global installer flow. Keep this order explicit so future changes remain
 	# easy to audit: load helpers, initialize logging, check prerequisites,
@@ -80,6 +90,7 @@ main() {
 	fi
 
 	dispatch_board_installer "$board"
+	print_completion_message
 }
 
 main "$@"

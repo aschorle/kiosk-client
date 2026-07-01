@@ -40,6 +40,8 @@ sudo KIOSK_USER=rock ./installer/install.sh
 
 Der Installer erkennt Debian-/Armbian-Systeme ueber `/etc/os-release` und akzeptiert Bookworm sowie Trixie. Board-spezifische Einstiegspunkte delegieren auf das gemeinsame Appliance-Profil.
 
+Nach erfolgreicher Installation erfolgt kein automatischer Reboot. Der Installer fordert am Ende ausdruecklich zu `sudo reboot` auf.
+
 Installierte Pakete:
 
 - `ca-certificates`
@@ -47,6 +49,7 @@ Installierte Pakete:
 - `cage`
 - `dbus`
 - `dbus-user-session`
+- `fonts-noto-color-emoji`
 
 ## Konfiguration
 
@@ -95,6 +98,8 @@ Der Systemstatus enthaelt die CPU-Temperatur aus `/sys/class/thermal/thermal_zon
 
 Browseraktionen senden Signale an `scripts/browser-supervisor.sh`. Der Supervisor startet Chromium innerhalb der laufenden Cage-Sitzung neu; Cage bleibt dabei aktiv. `kiosk-appliance.service` bleibt nur fuer den kompletten Runtime-Crash zustaendig.
 
+Unter Wayland/Cage kann der Mauszeiger je nach Plattform sichtbar bleiben. Dies ist eine bekannte Einschränkung der verwendeten Grafikarchitektur und hat keine funktionalen Auswirkungen auf den Appliance-Betrieb.
+
 ## First Boot
 
 Solange keine gueltige Ziel-URL konfiguriert ist, oeffnet Chromium die lokale Willkommensseite:
@@ -107,4 +112,4 @@ Nach dem Speichern einer gueltigen URL startet die Appliance-Runtime mit dieser 
 
 ## Version
 
-Aktuelle Version: `0.13.3`
+Aktuelle Version: `0.13.5`

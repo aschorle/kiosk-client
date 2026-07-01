@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.13.5
+
+- `fonts-noto-color-emoji` in die Appliance-Paketliste aufgenommen.
+- Abschlussmeldung des Installers finalisiert: kein automatischer Reboot, nur Hinweis auf `sudo reboot`.
+- Sichtbarer Mauszeiger unter Wayland/Cage als bekannte plattformabhaengige Einschraenkung dokumentiert.
+
+## 0.13.4
+
+- Installer-Abschluss stabilisiert: nach erfolgreicher Appliance-Installation kein automatischer Reboot, sondern klarer Hinweis auf `sudo reboot`.
+- Cursor-Ausblendung erneut geprueft: keine zusaetzlichen Workarounds; die Runtime bleibt beim vorhandenen transparenten Xcursor-Theme.
+
 ## 0.13.3
 
 - Reboot-Berechtigung korrigiert: Installer richtet eine enge sudoers-Regel fuer `/usr/bin/systemctl reboot` ein, der Agent nutzt `sudo /usr/bin/systemctl reboot`.

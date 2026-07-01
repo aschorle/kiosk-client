@@ -18,6 +18,7 @@ chromium
 cage
 dbus
 dbus-user-session
+fonts-noto-color-emoji
 "
 
 # Deprecated package groups are intentionally empty.
