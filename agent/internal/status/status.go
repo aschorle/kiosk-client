@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	AgentVersion = "0.12.9"
-	clockTicks    = 100
+	AgentVersion       = "0.13.1"
+	clockTicks         = 100
+	cpuTemperaturePath = "/sys/class/thermal/thermal_zone0/temp"
 )
 
 var (
@@ -52,6 +53,7 @@ type Status struct {
 	DebianVersion         string                 `json:"debian_version"`
 	Architecture          string                 `json:"architecture"`
 	CPUModel              string                 `json:"cpu_model"`
+	CPUTemperature        string                 `json:"cpu_temperature"`
 	MemoryTotal           uint64                 `json:"memory_total"`
 	MemoryAvailable       uint64                 `json:"memory_available"`
 	DiskTotal             uint64                 `json:"disk_total"`
@@ -172,6 +174,7 @@ func (p Provider) Current() Status {
 		DebianVersion:         debianVersion(),
 		Architecture:          architecture(),
 		CPUModel:              cpuModel(),
+		CPUTemperature:        cpuTemperature(),
 		MemoryTotal:           memoryTotal(),
 		MemoryAvailable:       memoryAvailable(),
 		DiskTotal:             diskTotal(),
@@ -343,6 +346,21 @@ func cpuModel() string {
 	}
 
 	return ""
+}
+
+func cpuTemperature() string {
+	content, err := os.ReadFile(cpuTemperaturePath)
+	if err != nil {
+		return "n/a"
+	}
+
+	raw := strings.TrimSpace(string(content))
+	milliCelsius, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return "n/a"
+	}
+
+	return fmt.Sprintf("%.1f \u00b0C", milliCelsius/1000)
 }
 
 func memoryTotal() uint64 {

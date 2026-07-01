@@ -1,6 +1,6 @@
 # Product Readiness
 
-Stand: Version 0.12.9
+Stand: Version 0.13.1
 
 Der produktive Pfad ist ausschliesslich die Appliance Edition fuer Debian oder Armbian Minimal.
 
@@ -37,6 +37,7 @@ Boot
 
 - Browsersteuerung signalisiert den Browser-Supervisor innerhalb der laufenden Cage-Sitzung
 - Reload und Neustart lassen Cage aktiv und starten nur Chromium neu
+- System-Reboot wird durch den lokalen Agent ausgeloest
 - Config-Speichern ist vom Browser-Neustart getrennt
 - Installation beschreibt nur noch den Appliance-Pfad
 - systemd-Dokumentation beschreibt nur noch User-Units fuer `default.target`
@@ -56,4 +57,5 @@ Boot
 - Installation auf frischen Bookworm- und Trixie-Minimalsystemen erneut verifizieren.
 - Release-Artefakt mit vorgebautem `kiosk-agent` definieren.
 - Admin-Oberflaeche final polieren.
+- CPU-Temperaturanzeige auf allen Zielplattformen verifizieren.
 - Dokumentation fuer Betrieb und Update abschliessen.

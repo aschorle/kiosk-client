@@ -367,6 +367,10 @@ const dashboardHTML = `<!doctype html>
 
     <section>
       <h2>System</h2>
+      <div class="actions">
+        <button id="system-reboot" class="secondary" type="button">System Reboot</button>
+      </div>
+      <div id="system-message" class="message" role="status"></div>
       <div class="grid system-grid">
         <div class="tile">
           <span class="label">Version</span>
@@ -383,6 +387,10 @@ const dashboardHTML = `<!doctype html>
         <div class="tile">
           <span class="label">CPU</span>
           <span id="cpu" class="value">laedt</span>
+        </div>
+        <div class="tile">
+          <span class="label">CPU-Temperatur</span>
+          <span id="cpu-temperature" class="value">laedt</span>
         </div>
         <div class="tile">
           <span class="label">Load</span>
@@ -461,9 +469,11 @@ const dashboardHTML = `<!doctype html>
     const saveButton = document.getElementById("save-config");
     const restartButton = document.getElementById("browser-restart");
     const reloadButton = document.getElementById("browser-reload");
+    const rebootButton = document.getElementById("system-reboot");
     const loadMessage = document.getElementById("load-message");
     const configMessage = document.getElementById("config-message");
     const browserMessage = document.getElementById("browser-message");
+    const systemMessage = document.getElementById("system-message");
 
     let currentConfig = { url: "", device_id: "", browser: "chromium" };
 
@@ -531,6 +541,7 @@ const dashboardHTML = `<!doctype html>
         health: health.status,
         memory: formatPair(status.memory_available, status.memory_total),
         cpu_model: status.cpu_model,
+        cpu_temperature: status.cpu_temperature,
         load_average: status.load_average
       };
     }
@@ -549,6 +560,7 @@ const dashboardHTML = `<!doctype html>
       setText("kernel", view.kernel);
       setText("memory", view.memory);
       setText("cpu", view.cpu_model);
+      setText("cpu-temperature", view.cpu_temperature);
       setText("load", view.load_average);
     }
 
@@ -663,6 +675,35 @@ const dashboardHTML = `<!doctype html>
         browserMessage.textContent = error.message || label + " fehlgeschlagen.";
       } finally {
         setBrowserButtonsDisabled(false);
+      }
+    }
+
+    async function rebootSystem() {
+      if (!window.confirm("System wirklich neu starten?")) {
+        return;
+      }
+
+      rebootButton.disabled = true;
+      systemMessage.className = "message";
+      systemMessage.textContent = "System Reboot wird ausgefuehrt.";
+
+      try {
+        const response = await fetch("/api/system/reboot", { method: "POST", headers: { "Accept": "application/json" } });
+        if (response.status === 401) {
+          throw new Error("Authentication enabled");
+        }
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.error || "System Reboot fehlgeschlagen.");
+        }
+
+        systemMessage.className = "message ok";
+        systemMessage.textContent = "System wird neu gestartet...";
+      } catch (error) {
+        systemMessage.className = "message error";
+        systemMessage.textContent = error.message || "System Reboot fehlgeschlagen.";
+        rebootButton.disabled = false;
       }
     }
 
@@ -793,6 +834,7 @@ const dashboardHTML = `<!doctype html>
     configForm.addEventListener("submit", saveConfig);
     restartButton.addEventListener("click", () => runBrowserAction("/api/browser/restart", "Neustart"));
     reloadButton.addEventListener("click", () => runBrowserAction("/api/browser/reload", "Reload"));
+    rebootButton.addEventListener("click", rebootSystem);
     loadDashboard();
   </script>
 </body>

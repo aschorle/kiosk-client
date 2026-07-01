@@ -83,8 +83,13 @@ Verwendete REST-Endpunkte:
 - `GET /api/metrics`
 - `POST /api/browser/reload`
 - `POST /api/browser/restart`
+- `POST /api/system/reboot`
 
 `PUT /api/config` speichert nur die Konfiguration. Browseraktionen werden getrennt ueber die Browser-Endpunkte ausgefuehrt.
+
+Der Systemstatus enthaelt die CPU-Temperatur aus `/sys/class/thermal/thermal_zone0/temp`, sofern der Kernel diesen Wert bereitstellt.
+
+`POST /api/system/reboot` loest einen sauberen System-Reboot ueber den lokalen Agent aus.
 
 ## Browsersteuerung
 
@@ -102,4 +107,4 @@ Nach dem Speichern einer gueltigen URL startet die Appliance-Runtime mit dieser 
 
 ## Version
 
-Aktuelle Version: `0.12.9`
+Aktuelle Version: `0.13.1`

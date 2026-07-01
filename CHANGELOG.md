@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.13.1
+
+- Kiosk-Konfigurationsseite um `System Reboot` erweitert; neuer Agent-Endpunkt `POST /api/system/reboot` loest einen sauberen System-Reboot aus.
+
+## 0.13.0
+
+- Status-API und Kiosk-Konfigurationsseite zeigen die CPU-Temperatur aus `/sys/class/thermal/thermal_zone0/temp` an; fehlt der Wert, wird `n/a` ausgegeben.
+
 ## 0.12.9
 
 - Browser-Supervisor fuer die Appliance-Runtime eingefuehrt: Reload und Neustart laufen per `SIGUSR1`/`SIGUSR2`, ohne Cage zu beenden.

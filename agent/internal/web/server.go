@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os/exec"
 
 	"github.com/aschorle/kiosk-client/agent/internal/browser"
 	"github.com/aschorle/kiosk-client/agent/internal/config"
@@ -44,6 +45,7 @@ func (s Server) Routes() []Route {
 		{Method: http.MethodGet, Path: "/api/status"},
 		{Method: http.MethodPost, Path: "/api/browser/reload"},
 		{Method: http.MethodPost, Path: "/api/browser/restart"},
+		{Method: http.MethodPost, Path: "/api/system/reboot"},
 	}
 }
 
@@ -68,6 +70,7 @@ func (s Server) mux() *http.ServeMux {
 	mux.HandleFunc("/api/status", s.handleStatus)
 	mux.HandleFunc("/api/browser/reload", s.handleBrowserReload)
 	mux.HandleFunc("/api/browser/restart", s.handleBrowserRestart)
+	mux.HandleFunc("/api/system/reboot", s.handleSystemReboot)
 
 	return mux
 }
@@ -262,6 +265,20 @@ func (s Server) handleBrowserReload(w http.ResponseWriter, r *http.Request) {
 	writeOK(w)
 }
 
+func (s Server) handleSystemReboot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := rebootSystem(); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	writeOK(w)
+}
+
 func (s Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -274,6 +291,10 @@ func (s Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to encode status", http.StatusInternalServerError)
 		return
 	}
+}
+
+func rebootSystem() error {
+	return exec.Command("systemctl", "reboot").Run()
 }
 
 type errorResponse struct {
