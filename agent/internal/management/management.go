@@ -50,7 +50,7 @@ func Start(ctx context.Context, provider status.Provider, logf func(string, ...a
 		defer close(done)
 		client := &http.Client{Timeout: 10 * time.Second}
 		for {
-			if err := heartbeat(ctx, client, provider, nil, logf); err != nil && ctx.Err() == nil {
+			if err := heartbeat(ctx, client, provider, []ack{}, logf); err != nil && ctx.Err() == nil {
 				logf("central management heartbeat failed: %v", err)
 			}
 			select {
