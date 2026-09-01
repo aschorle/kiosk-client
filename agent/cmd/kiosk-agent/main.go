@@ -10,13 +10,14 @@ import (
 
 	"github.com/aschorle/kiosk-client/agent/internal/browser"
 	"github.com/aschorle/kiosk-client/agent/internal/config"
+	"github.com/aschorle/kiosk-client/agent/internal/management"
 	"github.com/aschorle/kiosk-client/agent/internal/status"
 	"github.com/aschorle/kiosk-client/agent/internal/web"
 )
 
 const (
 	configPath       = "config/client.conf"
-	httpAddr         = ":8080"
+	httpAddr         = "127.0.0.1:8080"
 	watchdogInterval = 30 * time.Second
 )
 
@@ -46,6 +47,7 @@ func main() {
 
 	watchdogDone := browser.StartWatchdog(ctx, watchdogInterval, log.Printf)
 	watchdogMetricsDone := status.StartWatchdogCheckCounter(ctx, watchdogInterval)
+	managementDone := management.Start(ctx, provider, log.Printf)
 	log.Printf("browser watchdog started with interval %s", watchdogInterval)
 	log.Printf("http server listening on %s", httpAddr)
 
@@ -64,4 +66,5 @@ func main() {
 	cancel()
 	<-watchdogDone
 	<-watchdogMetricsDone
+	<-managementDone
 }

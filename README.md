@@ -2,7 +2,7 @@
 
 Lokale Kiosk-Appliance fuer genau ein Geraet.
 
-Der kiosk-client startet nach dem Boot eine lokale Administrationsoberflaeche und Chromium im Kioskmodus. Chromium zeigt ausschliesslich die konfigurierte URL. Es gibt keine Cloud, kein zentrales Management und keine Mehrgeraeteverwaltung.
+Der kiosk-client startet nach dem Boot eine lokale Administrationsoberflaeche und Chromium im Kioskmodus. Chromium zeigt ausschliesslich die konfigurierte URL. Phase 1 erlaubt optional eine ausgehende, zentral verwaltete Heartbeat-Verbindung; es gibt keine von aussen erreichbare Remote-API.
 
 ## Zielplattform
 
@@ -13,6 +13,16 @@ Der kiosk-client startet nach dem Boot eine lokale Administrationsoberflaeche un
 - dbus-run-session
 - Cage
 - Chromium
+
+## Referenzclient und SSH
+
+Der produktive Referenzclient ist `raspi-kiosk` (Raspberry Pi 4 Model B) mit
+Armbian 26.5.1 auf Debian trixie und Kernel `6.18.35-current-bcm2711`.
+
+Fuer Installation, Wartung, Diagnose und Recovery wird der lokale SSH-Alias
+`raspi-kiosk` mit dem Benutzer `aschorle` verwendet. Er nutzt ausschliesslich
+den dedizierten Key `~/.ssh/id_ed25519_raspi_kiosk`. SSH ist nicht der Weg fuer
+regulaere zentrale Client-Kommandos.
 
 ## Runtime
 
@@ -64,13 +74,19 @@ Wichtige Werte:
 - `URL`: Zielseite des Kiosks
 - `DEVICE_ID`: lokale Geraetekennung
 - `BROWSER`: Chromium-Binary, standardmaessig `chromium`
-- `AUTH_TOKEN`: optionaler Schreibschutz fuer lokale API-Aufrufe
+- `AUTH_TOKEN`: Schreibschutz für lokale API-Aufrufe und Bearer-Token für die zentrale Verwaltung
+- `SERVER_URL`: optionale zentrale Server-URL; leer deaktiviert den Heartbeat
+- `DEVICE_NAME`: optionaler Anzeigename im zentralen Admin
 
 `AUTH_TOKEN` wird nicht ueber die Weboberflaeche oder JSON-Konfiguration ausgegeben.
 
+`URL` und `SERVER_URL` haben getrennte Aufgaben: `URL` ist die Browser- bzw.
+Player-Zieladresse. `SERVER_URL` wird nur fuer die ausgehende zentrale
+Verwaltung und Heartbeat-Kommunikation verwendet; sie aendert die Browser-Zieladresse nicht.
+
 ## Lokale Administration
 
-Der Agent stellt die lokale Oberflaeche auf Port `8080` bereit:
+Der Agent stellt die lokale Oberflaeche ausschließlich auf `127.0.0.1:8080` bereit:
 
 ```text
 http://localhost:8080/
@@ -109,6 +125,21 @@ http://localhost:8080/welcome
 ```
 
 Nach dem Speichern einer gueltigen URL startet die Appliance-Runtime mit dieser Zielseite.
+
+## Linux-Go-Validierung
+
+Vor einem Commit werden die geaenderten Go-Dateien mit `gofmt -w` formatiert.
+Die vollstaendige Validierung erfolgt in einer temporaeren Linux-Testkopie ohne
+produktive `config/client.conf` und ohne Tokens:
+
+```bash
+go test ./...
+go vet ./...
+```
+
+Anschliessend werden lokal `git diff --check`, `git status --short` und der
+Diff geprueft. Die produktive Installation und ihre Dienste bleiben dabei
+unveraendert.
 
 ## Version
 

@@ -6,8 +6,11 @@ URL=https://display.example.local
 # Eindeutige Gerätekennung
 DEVICE_ID=display01
 
-# Lokaler Web-UI-Port
-PORT=8080
+# Optional: URL des zentralen Kiosk-Servers. Leer deaktiviert Management.
+SERVER_URL=https://kiosk-server.example.local
 
-# Version des Clients
-VERSION=0.1.0
+# Optionaler Anzeigename im zentralen Admin.
+DEVICE_NAME=Display 01
+
+# Token für lokale Schreib-API und zentralen Heartbeat. Nicht committen.
+AUTH_TOKEN=replace-with-a-secret-token

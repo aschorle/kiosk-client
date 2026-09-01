@@ -271,7 +271,7 @@ func (s Server) handleSystemReboot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := rebootSystem(); err != nil {
+	if err := RebootSystem(); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -293,7 +293,8 @@ func (s Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func rebootSystem() error {
+// RebootSystem performs the one supported system-level action.
+func RebootSystem() error {
 	return exec.Command("sudo", "/usr/bin/systemctl", "reboot").Run()
 }
 

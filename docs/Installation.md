@@ -89,3 +89,20 @@ pgrep -a cage
 pgrep -a chromium
 curl http://localhost:8080/api/health
 ```
+
+## Go-Validierung
+
+Fuer Linux-Validierungen wird der aktuelle Arbeitsstand in einen temporaeren
+Testpfad auf dem Zielsystem kopiert. Die produktive Installation,
+`config/client.conf` und Tokens bleiben dabei ausgeschlossen. Danach aus dem
+Testpfad ausfuehren:
+
+```bash
+gofmt -w agent/cmd/kiosk-agent/main.go agent/internal/config/config.go agent/internal/web/server.go agent/internal/management/management.go
+go test ./...
+go vet ./...
+```
+
+Formatierte Dateien werden nur bei einer tatsaechlichen Aenderung in den
+lokalen Arbeitsstand zurueck uebernommen. Abschliessend lokal `git diff --check`
+ausfuehren.

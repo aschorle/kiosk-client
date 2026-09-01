@@ -16,10 +16,12 @@ const (
 
 // Config contains the kiosk-client runtime configuration.
 type Config struct {
-	URL       string `json:"url"`
-	DeviceID  string `json:"device_id"`
-	Browser   string `json:"browser"`
-	AuthToken string `json:"-"`
+	URL        string `json:"url"`
+	DeviceID   string `json:"device_id"`
+	DeviceName string `json:"device_name"`
+	ServerURL  string `json:"server_url"`
+	Browser    string `json:"browser"`
+	AuthToken  string `json:"-"`
 }
 
 var (
@@ -106,6 +108,8 @@ func Update(cfg Config) error {
 	}
 
 	normalized.AuthToken = currentConfig.AuthToken
+	normalized.DeviceName = currentConfig.DeviceName
+	normalized.ServerURL = currentConfig.ServerURL
 
 	mode := os.FileMode(0644)
 	if info, err := os.Stat(currentPath); err == nil {
@@ -113,9 +117,11 @@ func Update(cfg Config) error {
 	}
 
 	content := fmt.Sprintf(
-		"URL=%s\nDEVICE_ID=%s\nBROWSER=%s\nAUTH_TOKEN=%s\n",
+		"URL=%s\nDEVICE_ID=%s\nDEVICE_NAME=%s\nSERVER_URL=%s\nBROWSER=%s\nAUTH_TOKEN=%s\n",
 		normalized.URL,
 		normalized.DeviceID,
+		normalized.DeviceName,
+		normalized.ServerURL,
 		normalized.Browser,
 		normalized.AuthToken,
 	)
@@ -131,9 +137,11 @@ func Update(cfg Config) error {
 // Validate normalizes and validates user supplied configuration values.
 func Validate(cfg Config) (Config, error) {
 	normalized := Config{
-		URL:      strings.TrimSpace(cfg.URL),
-		DeviceID: strings.TrimSpace(cfg.DeviceID),
-		Browser:  strings.ToLower(strings.TrimSpace(cfg.Browser)),
+		URL:        strings.TrimSpace(cfg.URL),
+		DeviceID:   strings.TrimSpace(cfg.DeviceID),
+		DeviceName: strings.TrimSpace(cfg.DeviceName),
+		ServerURL:  strings.TrimRight(strings.TrimSpace(cfg.ServerURL), "/"),
+		Browser:    strings.ToLower(strings.TrimSpace(cfg.Browser)),
 	}
 
 	if normalized.URL == "" {
@@ -183,10 +191,12 @@ func read(path string) (Config, error) {
 	}
 
 	cfg := Config{
-		URL:       valueOrDefaultValue(values["URL"], defaultURL),
-		DeviceID:  values["DEVICE_ID"],
-		Browser:   valueOrDefaultValue(values["BROWSER"], defaultBrowser),
-		AuthToken: values["AUTH_TOKEN"],
+		URL:        valueOrDefaultValue(values["URL"], defaultURL),
+		DeviceID:   values["DEVICE_ID"],
+		DeviceName: values["DEVICE_NAME"],
+		ServerURL:  strings.TrimRight(values["SERVER_URL"], "/"),
+		Browser:    valueOrDefaultValue(values["BROWSER"], defaultBrowser),
+		AuthToken:  values["AUTH_TOKEN"],
 	}
 
 	return cfg, nil

@@ -1,8 +1,8 @@
 # kiosk-client agent user service
 #
 # This service starts the local kiosk-agent in the user manager.
-# The agent exposes local HTTP status endpoints and monitors the browser
-# runtime without controlling it.
+# The agent listens on loopback only, exposes local HTTP status endpoints, and
+# starts the outbound central-management heartbeat when configured.
 
 [Unit]
 Description=kiosk-client agent
