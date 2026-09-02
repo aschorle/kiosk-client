@@ -11,6 +11,7 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 CONFIG_FILE=${KIOSK_CLIENT_CONFIG:-"$PROJECT_DIR/config/client.conf"}
+MANAGEMENT_STATE_FILE=${KIOSK_CLIENT_MANAGEMENT_STATE:-"$(dirname "$CONFIG_FILE")/management-state.json"}
 DEFAULT_URL="http://localhost"
 LOCAL_ADMIN_URL="http://localhost:8080/"
 WELCOME_URL="http://localhost:8080/welcome"
@@ -91,6 +92,28 @@ read_config_url() {
 	fi
 
 	printf '%s\n' "$WELCOME_URL"
+}
+
+read_managed_url() {
+	# The state file is data, never shell input. URLs accepted by the agent
+	# contain neither backslashes nor control characters, so this small parser is
+	# sufficient and deliberately ignores damaged/incomplete state.
+	[ -r "$MANAGEMENT_STATE_FILE" ] || return 1
+	managed_url=$(sed -n 's/^[[:space:]]*"effective_browser_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$MANAGEMENT_STATE_FILE" | head -n 1)
+	[ "$managed_url" != "" ] || return 1
+	if validate_url "$managed_url"; then
+		printf '%s\n' "$managed_url"
+		return 0
+	fi
+	return 1
+}
+
+read_effective_url() {
+	if managed_url=$(read_managed_url); then
+		printf '%s\n' "$managed_url"
+		return 0
+	fi
+	read_config_url
 }
 
 is_configured_url() {
@@ -199,7 +222,7 @@ start_browser() {
 		return 1
 	fi
 
-	if ! kiosk_url=$(read_config_url); then
+	if ! kiosk_url=$(read_effective_url); then
 		log_error "Browser-URL konnte nicht ermittelt werden."
 		return 1
 	fi

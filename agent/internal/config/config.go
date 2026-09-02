@@ -106,6 +106,17 @@ func AuthToken() string {
 	return strings.TrimSpace(currentConfig.AuthToken)
 }
 
+// ManagementStatePath returns the separate, non-secret state file beside the
+// loaded client.conf.
+func ManagementStatePath() (string, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+	if !loaded || currentPath == "" {
+		return "", fmt.Errorf("configuration has not been loaded")
+	}
+	return filepath.Join(filepath.Dir(currentPath), "management-state.json"), nil
+}
+
 // Update validates and writes the runtime configuration to client.conf.
 func Update(cfg Config) error {
 	mu.Lock()

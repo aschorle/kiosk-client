@@ -7,8 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/aschorle/kiosk-client/agent/internal/browser"
 	"github.com/aschorle/kiosk-client/agent/internal/config"
@@ -30,7 +35,33 @@ type command struct {
 }
 
 type heartbeatResponse struct {
-	Command *command `json:"command"`
+	Command       *command       `json:"command"`
+	DesiredConfig *desiredConfig `json:"desired_config"`
+}
+
+type desiredConfig struct {
+	BrowserURL string          `json:"browser_url"`
+	Revision   json.RawMessage `json:"revision"`
+}
+
+// reportedConfig intentionally contains no authentication material.
+type reportedConfig struct {
+	BrowserURL      string `json:"browser_url,omitempty"`
+	AppliedRevision string `json:"applied_revision,omitempty"`
+	Status          string `json:"status"`
+	ErrorRevision   string `json:"error_revision,omitempty"`
+	ErrorCode       string `json:"error_code,omitempty"`
+	ErrorMessage    string `json:"error_message,omitempty"`
+}
+
+type managementState struct {
+	EffectiveBrowserURL string `json:"effective_browser_url,omitempty"`
+	DesiredRevision     string `json:"desired_revision,omitempty"`
+	AppliedRevision     string `json:"applied_revision,omitempty"`
+	Status              string `json:"status"`
+	ErrorRevision       string `json:"error_revision,omitempty"`
+	ErrorCode           string `json:"error_code,omitempty"`
+	ErrorMessage        string `json:"error_message,omitempty"`
 }
 
 // Start starts no worker when central management is not configured.
@@ -69,7 +100,11 @@ func heartbeat(ctx context.Context, client *http.Client, provider status.Provide
 		return err
 	}
 	current, health := provider.Current(), provider.Health()
-	payload := heartbeatPayload(cfg, current, health, acks)
+	state, stateErr := loadStateFor(cfg)
+	if stateErr != nil {
+		state = managementState{Status: "error", ErrorCode: "state_corrupt", ErrorMessage: "management state is invalid"}
+	}
+	payload := heartbeatPayload(cfg, current, health, acks, state)
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -91,6 +126,11 @@ func heartbeat(ctx context.Context, client *http.Client, provider status.Provide
 	var result heartbeatResponse
 	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
 		return err
+	}
+	if supportsManagedBrowserURL(cfg) && result.DesiredConfig != nil {
+		if err := applyDesired(ctx, cfg, controller, state, *result.DesiredConfig); err != nil {
+			logf("central browser URL apply failed: %v", err)
+		}
 	}
 	if result.Command == nil {
 		return nil
@@ -114,12 +154,21 @@ func heartbeat(ctx context.Context, client *http.Client, provider status.Provide
 // heartbeatPayload keeps the externally visible protocol value independent of
 // the internal profile/controller selection. Legacy appliance installations
 // therefore continue to identify themselves as kiosk-client.
-func heartbeatPayload(cfg config.Config, current status.Status, health status.Health, acks []ack) map[string]any {
-	return map[string]any{
+func heartbeatPayload(cfg config.Config, current status.Status, health status.Health, acks []ack, state managementState) map[string]any {
+	payload := map[string]any{
 		"client_id": cfg.DeviceID, "name": deviceName(cfg), "client_type": protocolClientType(cfg),
 		"agent_version": status.AgentVersion, "browser_running": current.BrowserRunning,
 		"health": health.Status, "capabilities": capabilities(cfg), "acks": acks,
 	}
+	payload["protocol_version"] = 2
+	payload["config_capabilities"] = []string{}
+	if supportsManagedBrowserURL(cfg) {
+		payload["config_capabilities"] = []string{"browser_url"}
+	} else {
+		state = managementState{Status: "not_supported"}
+	}
+	payload["reported_config"] = reportState(state)
+	return payload
 }
 
 func protocolClientType(cfg config.Config) string {
@@ -139,6 +188,18 @@ func capabilities(cfg config.Config) []string {
 		capabilities = append(capabilities, "reboot")
 	}
 	return capabilities
+}
+
+func supportsManagedBrowserURL(cfg config.Config) bool {
+	// Only the appliance supervisor restarts scripts/start-browser.sh, which
+	// reads the managed state. The Mini-PC kiosk.service is intentionally not
+	// altered in this phase.
+	return cfg.ClientType != "systemd" && cfg.BrowserController == "supervisor"
+}
+
+func reportState(state managementState) reportedConfig {
+	return reportedConfig{BrowserURL: state.EffectiveBrowserURL, AppliedRevision: state.AppliedRevision,
+		Status: state.Status, ErrorRevision: state.ErrorRevision, ErrorCode: state.ErrorCode, ErrorMessage: state.ErrorMessage}
 }
 
 func deviceName(cfg config.Config) string {
@@ -168,4 +229,146 @@ func execute(ctx context.Context, item command, controller browser.Controller, c
 		result.Message = "unsupported command"
 	}
 	return result
+}
+
+func revision(raw json.RawMessage) (string, error) {
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil && strings.TrimSpace(text) != "" {
+		return text, nil
+	}
+	var number json.Number
+	if err := json.Unmarshal(raw, &number); err == nil && number.String() != "" {
+		return number.String(), nil
+	}
+	return "", fmt.Errorf("desired config revision is invalid")
+}
+
+func applyDesired(ctx context.Context, _ config.Config, controller browser.Controller, state managementState, desired desiredConfig) error {
+	rev, err := revision(desired.Revision)
+	if err != nil {
+		return err
+	}
+	// A completed or terminally rejected revision is never retried. A newer
+	// revision clears stale errors and is eligible for one apply attempt.
+	if rev == state.AppliedRevision || rev == state.ErrorRevision {
+		return nil
+	}
+	path, err := config.ManagementStatePath()
+	if err != nil {
+		return err
+	}
+	state.DesiredRevision = rev
+	state.ErrorRevision, state.ErrorCode, state.ErrorMessage = "", "", ""
+	if err := validateBrowserURL(desired.BrowserURL); err != nil {
+		state.Status, state.ErrorRevision, state.ErrorCode, state.ErrorMessage = "error", rev, "invalid_url", err.Error()
+		return saveState(path, state)
+	}
+	// Persist the intended URL before signalling the supervisor: it may start
+	// Chromium immediately after receiving the signal and must observe it.
+	previousURL := state.EffectiveBrowserURL
+	state.Status = "pending"
+	state.EffectiveBrowserURL = desired.BrowserURL
+	if err := saveState(path, state); err != nil {
+		return err
+	}
+	if desired.BrowserURL != previousURL {
+		if err := controller.Restart(ctx); err != nil {
+			state.EffectiveBrowserURL = previousURL
+			state.Status, state.ErrorRevision, state.ErrorCode, state.ErrorMessage = "error", rev, "restart_failed", "browser restart failed"
+			if saveErr := saveState(path, state); saveErr != nil {
+				return fmt.Errorf("restart: %v; save error: %w", err, saveErr)
+			}
+			return fmt.Errorf("browser restart: %w", err)
+		}
+	}
+	state.AppliedRevision, state.Status = rev, "synced"
+	return saveState(path, state)
+}
+
+func validateBrowserURL(value string) error {
+	if value == "" || len(value) > 2048 {
+		return fmt.Errorf("browser URL must be 1 to 2048 characters")
+	}
+	for _, r := range value {
+		if r == '\\' || r <= 0x1f || r == 0x7f || unicode.IsSpace(r) {
+			return fmt.Errorf("browser URL contains invalid whitespace or control characters")
+		}
+	}
+	u, err := url.ParseRequestURI(value)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil {
+		return fmt.Errorf("browser URL must be an absolute http or https URL without userinfo")
+	}
+	if u.Hostname() == "" {
+		return fmt.Errorf("browser URL host is required")
+	}
+	if port := u.Port(); port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return fmt.Errorf("browser URL port is invalid")
+		}
+	}
+	return nil
+}
+
+func loadStateFor(config.Config) (managementState, error) {
+	path, err := config.ManagementStatePath()
+	if err != nil {
+		return managementState{Status: "not_initialized"}, err
+	}
+	return loadState(path)
+}
+
+func loadState(path string) (managementState, error) {
+	contents, err := os.ReadFile(filepath.Clean(path))
+	if os.IsNotExist(err) {
+		return managementState{Status: "not_initialized"}, nil
+	}
+	if err != nil {
+		return managementState{}, err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(contents, &fields); err != nil {
+		return managementState{}, err
+	}
+	allowed := map[string]bool{"effective_browser_url": true, "desired_revision": true, "applied_revision": true, "status": true, "error_revision": true, "error_code": true, "error_message": true}
+	for key := range fields {
+		if !allowed[key] {
+			return managementState{}, fmt.Errorf("unknown management state field %q", key)
+		}
+	}
+	var state managementState
+	if err := json.Unmarshal(contents, &state); err != nil {
+		return managementState{}, err
+	}
+	if state.Status == "" {
+		return managementState{}, fmt.Errorf("management state status is missing")
+	}
+	return state, nil
+}
+
+func saveState(path string, state managementState) error {
+	contents, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return err
+	}
+	file, err := os.CreateTemp(dir, ".management-state-*")
+	if err != nil {
+		return err
+	}
+	tmp := file.Name()
+	defer os.Remove(tmp)
+	if err := file.Chmod(0600); err == nil {
+		_, err = file.Write(append(contents, '\n'))
+	}
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
 }

@@ -7,6 +7,7 @@ Der kiosk-client ist eine lokale Appliance fuer ein einzelnes Geraet.
 - Agent: lokale API und Weboberflaeche
 - Browser: lesende Laufzeitinformationen und Signale an den Browser-Supervisor
 - Config: `config/client.conf`
+- Managed browser URL state: `config/management-state.json` (separate from the local configuration)
 - Installer: Appliance-Installation
 - Runtime: systemd user services, Cage, Chromium
 - Status: System-, Browser- und Metrikdaten

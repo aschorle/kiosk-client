@@ -16,6 +16,12 @@ dbus-run-session
 
 `scripts/browser-supervisor.sh` bleibt als langlebiger Cage-Child-Prozess aktiv. Es startet `scripts/start-browser.sh`, das `config/client.conf` liest, Chromium ermittelt und den Browser im Kioskmodus startet.
 
+## Centrally managed URL (Phase 2B)
+
+The appliance/Raspberry profile receives `desired_config.browser_url` over the existing management heartbeat. The agent validates it independently and stores the applied URL and revision in `management-state.json` beside `client.conf`, using atomic replacement and mode `0600`. This file contains no token. A valid managed URL has priority over `URL` in `client.conf`; the local URL and existing welcome-page fallback remain available when no valid managed state exists.
+
+Only a new valid revision whose effective URL changes restarts the browser supervisor. Failures are reported on the next heartbeat and that revision is not retried continuously; a newer revision may be applied. The Mini-PC management-only profile deliberately does not advertise `browser_url` yet: its existing `kiosk.service` launcher is unchanged in this phase.
+
 ## URL
 
 Wenn `URL` leer oder nicht gueltig konfiguriert ist, verwendet das Startskript die lokale Willkommensseite:
