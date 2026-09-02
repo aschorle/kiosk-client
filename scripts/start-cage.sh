@@ -43,6 +43,15 @@ install_hidden_cursor_theme() {
 		return 1
 	fi
 
+	# Repair a stale self-referencing left_ptr from older runs before writing the
+	# real Xcursor file. Never replace the real cursor with an alias to itself.
+	if [ -L "$cursor_file" ]; then
+		if ! rm -f "$cursor_file"; then
+			log_error "Defekter left_ptr-Symlink konnte nicht entfernt werden: $cursor_file"
+			return 1
+		fi
+	fi
+
 	if ! printf '[Icon Theme]\nName=%s\nComment=Transparent kiosk cursor\n' "$CURSOR_THEME_NAME" > "$theme_dir/index.theme"; then
 		log_error "Cursor-Theme-Index konnte nicht geschrieben werden: $theme_dir/index.theme"
 		return 1
@@ -65,6 +74,9 @@ install_hidden_cursor_theme() {
 	fi
 
 	for cursor_name in default arrow left_ptr right_ptr top_left_arrow pointer hand1 hand2 text xterm ibeam crosshair move grab grabbing watch wait progress copy alias context-menu help not-allowed no-drop all-scroll col-resize row-resize n-resize e-resize s-resize w-resize ne-resize nw-resize se-resize sw-resize ew-resize ns-resize nesw-resize nwse-resize; do
+		if [ "$cursor_name" = "left_ptr" ]; then
+			continue
+		fi
 		ln -sf left_ptr "$cursor_dir/$cursor_name"
 	done
 
