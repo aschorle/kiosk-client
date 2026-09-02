@@ -2,6 +2,7 @@ package management
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -103,5 +104,35 @@ func TestStateRoundTripAndRejectsUnknownFields(t *testing.T) {
 	}
 	if _, err := loadState(path); err == nil {
 		t.Fatal("unknown state field accepted")
+	}
+}
+
+func TestReportedAppliedRevisionIsJSONNumber(t *testing.T) {
+	payload := heartbeatPayload(config.Config{ClientType: "appliance", BrowserController: "supervisor"}, status.Status{}, status.Health{Status: "healthy"}, nil, managementState{EffectiveBrowserURL: "https://example.test", AppliedRevision: "1", Status: "synced"})
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	reported, ok := decoded["reported_config"].(map[string]any)
+	if !ok {
+		t.Fatalf("reported_config has type %T", decoded["reported_config"])
+	}
+	if got, ok := reported["applied_revision"].(float64); !ok || got != 1 {
+		t.Fatalf("applied_revision = %#v (%T), want JSON number 1", reported["applied_revision"], reported["applied_revision"])
+	}
+}
+
+func TestAlreadyAppliedRevisionDoesNotRestart(t *testing.T) {
+	controller := &fakeController{}
+	result := applyDesired(context.Background(), config.Config{}, controller, managementState{EffectiveBrowserURL: "https://example.test", AppliedRevision: "1", Status: "synced"}, desiredConfig{BrowserURL: "https://other.example", Revision: json.RawMessage(`1`)})
+	if result != nil {
+		t.Fatal(result)
+	}
+	if controller.restarts != 0 {
+		t.Fatalf("already applied revision restarted browser %d times", controller.restarts)
 	}
 }

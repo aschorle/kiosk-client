@@ -99,7 +99,7 @@ read_managed_url() {
 	# contain neither backslashes nor control characters, so this small parser is
 	# sufficient and deliberately ignores damaged/incomplete state.
 	[ -r "$MANAGEMENT_STATE_FILE" ] || return 1
-	managed_url=$(sed -n 's/^[[:space:]]*"effective_browser_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$MANAGEMENT_STATE_FILE" | head -n 1)
+	managed_url=$(sed -n 's/.*"effective_browser_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$MANAGEMENT_STATE_FILE" | head -n 1)
 	[ "$managed_url" != "" ] || return 1
 	if validate_url "$managed_url"; then
 		printf '%s\n' "$managed_url"

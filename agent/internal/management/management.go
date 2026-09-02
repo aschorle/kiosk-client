@@ -47,9 +47,9 @@ type desiredConfig struct {
 // reportedConfig intentionally contains no authentication material.
 type reportedConfig struct {
 	BrowserURL      string `json:"browser_url,omitempty"`
-	AppliedRevision string `json:"applied_revision,omitempty"`
+	AppliedRevision int    `json:"applied_revision,omitempty"`
 	Status          string `json:"status"`
-	ErrorRevision   string `json:"error_revision,omitempty"`
+	ErrorRevision   int    `json:"error_revision,omitempty"`
 	ErrorCode       string `json:"error_code,omitempty"`
 	ErrorMessage    string `json:"error_message,omitempty"`
 }
@@ -198,8 +198,14 @@ func supportsManagedBrowserURL(cfg config.Config) bool {
 }
 
 func reportState(state managementState) reportedConfig {
-	return reportedConfig{BrowserURL: state.EffectiveBrowserURL, AppliedRevision: state.AppliedRevision,
-		Status: state.Status, ErrorRevision: state.ErrorRevision, ErrorCode: state.ErrorCode, ErrorMessage: state.ErrorMessage}
+	report := reportedConfig{BrowserURL: state.EffectiveBrowserURL, Status: state.Status, ErrorCode: state.ErrorCode, ErrorMessage: state.ErrorMessage}
+	if revision, err := strconv.Atoi(state.AppliedRevision); err == nil && revision > 0 {
+		report.AppliedRevision = revision
+	}
+	if revision, err := strconv.Atoi(state.ErrorRevision); err == nil && revision > 0 {
+		report.ErrorRevision = revision
+	}
+	return report
 }
 
 func deviceName(cfg config.Config) string {
