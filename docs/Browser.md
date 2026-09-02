@@ -14,7 +14,7 @@ dbus-run-session
 -> chromium
 ```
 
-`scripts/browser-supervisor.sh` bleibt als langlebiger Cage-Child-Prozess aktiv. Es startet `scripts/start-browser.sh`, das `config/client.conf` liest, Chromium ermittelt und den Browser im Kioskmodus startet.
+`scripts/browser-supervisor.sh` bleibt als langlebiger Cage-Child-Prozess aktiv. Es startet `scripts/start-browser.sh`, das `config/client.conf` liest, Chromium ermittelt und den Browser im Kioskmodus startet. Dabei wird die Chromium-Übersetzungsoberfläche mit `--disable-translate` deaktiviert.
 
 ## Centrally managed URL (Phase 2B)
 
@@ -39,6 +39,7 @@ Sobald eine gueltige URL gespeichert wurde, startet Chromium mit dieser Zielseit
 - `--no-first-run`
 - `--disable-session-crashed-bubble`
 - `--disable-infobars`
+- `--disable-translate`
 - `--disable-background-networking`
 - `--disable-background-timer-throttling`
 - `--disable-renderer-backgrounding`
