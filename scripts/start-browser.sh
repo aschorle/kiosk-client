@@ -244,6 +244,7 @@ start_browser() {
 		--no-first-run \
 		--disable-session-crashed-bubble \
 		--disable-infobars \
+		--disable-translate \
 		--disable-background-networking \
 		--disable-background-timer-throttling \
 		--disable-renderer-backgrounding \

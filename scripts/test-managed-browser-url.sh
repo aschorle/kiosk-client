@@ -19,8 +19,36 @@ run_url() {
 		"$START_SCRIPT" 2>/dev/null | tail -n 1
 }
 
+run_browser() {
+	KIOSK_CLIENT_CONFIG="$TEST_ROOT/config/client.conf" \
+	KIOSK_CLIENT_MANAGEMENT_STATE="$TEST_ROOT/config/management-state.json" \
+	PATH="$TEST_ROOT/bin:$PATH" \
+		"$START_SCRIPT" 2>/dev/null
+}
+
+assert_browser_arg() {
+	printf '%s\n' "$browser_args" | grep -Fqx -- "$1"
+}
+
 printf '%s\n' '{"effective_browser_url":"http://example.test/player/","desired_revision":"1","applied_revision":"1","status":"synced"}' > "$TEST_ROOT/config/management-state.json"
 [ "$(run_url)" = "http://example.test/player/" ]
+
+browser_args=$(run_browser)
+for browser_arg in \
+	--kiosk \
+	--incognito \
+	--no-first-run \
+	--disable-session-crashed-bubble \
+	--disable-infobars \
+	--disable-translate \
+	--disable-background-networking \
+	--disable-background-timer-throttling \
+	--disable-renderer-backgrounding \
+	--disable-sync \
+	--overscroll-history-navigation=0 \
+	http://example.test/player/; do
+	assert_browser_arg "$browser_arg"
+done
 
 rm -f "$TEST_ROOT/config/management-state.json"
 [ "$(run_url)" = "http://local.example/kiosk/" ]
