@@ -1,0 +1,4 @@
+# Linux runtime files must retain LF in every checkout and release archive.
+*.sh text eol=lf
+*.service text eol=lf
+systemd/sudoers.d/* text eol=lf
