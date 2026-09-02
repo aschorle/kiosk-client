@@ -144,3 +144,37 @@ unveraendert.
 ## Version
 
 Aktuelle Version: `0.13.6`
+
+## Management-only Client (Phase 1B)
+
+Neben der Raspberry-Appliance unterstuetzt derselbe Agent einen explizit
+konfigurierten Management-only-Modus fuer den bestehenden Mini-PC. Er ist kein
+Ersatz fuer dessen Display-Stack und erkennt keine Hardware automatisch.
+
+| Profil | Controller | Watchdog | Capabilities | Lokale API |
+| --- | --- | --- | --- | --- |
+| Appliance (Default) | Browser-Supervisor | `restart` | `restart_browser`, `reboot` | `127.0.0.1:8080` |
+| Management-only | festes `kiosk.service` | `observe` | `restart_browser` | `127.0.0.1:18080` |
+
+Management-only verwendet `CLIENT_TYPE=systemd`,
+`BROWSER_CONTROLLER=systemd-service`, `BROWSER_SERVICE=kiosk.service`,
+`BROWSER_WATCHDOG=observe`, `ENABLE_REBOOT=false`,
+`HTTP_ADDR=127.0.0.1:18080` und `CONFIG_WRITABLE=false`. Die vollständige
+Vorlage steht in `config/client.conf.management-only.example`.
+
+Der Controller akzeptiert keine aus Remote-Daten stammenden Unit-Namen. Ein
+Remote-`restart_browser` ruft ausschliesslich `sudo -n /usr/bin/systemctl
+restart kiosk.service` auf und prueft anschliessend den Zustand der festen Unit
+und ihren Chromium-Kiosk-MainPID. `reboot` wird in diesem Profil weder gemeldet
+noch ausgefuehrt. Der beobachtende Watchdog konkurriert deshalb nicht mit
+`Restart=always` von `kiosk.service`.
+
+Der separate Installer `installer/install-management-only.sh` ist nur fuer
+einen spaeteren, explizit freigegebenen Ubuntu-24.04-amd64-Pilot vorgesehen.
+Er installiert ausschliesslich den Agenten, `/etc/kiosk-agent/client.conf`,
+die Agent-Systemunit und eine einzelne sudoers-Regel fuer den festen
+Browserrestart. Er beruehrt niemals LightDM, Xorg, LXDE, Openbox, Chromium,
+`kiosk.service`, nginx, Port 8080, `/srv/kiosk`, `/srv/kiosk/content`,
+`kiosk-playlist.service`, `kiosk-save.service`, `kiosk-command.service` oder
+`filebrowser.service`. Die lokale Legacy-Slideshow auf Port 8080 bleibt bis zu
+einer separaten Migration produktiv.

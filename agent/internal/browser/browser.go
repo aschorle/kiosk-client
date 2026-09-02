@@ -11,32 +11,30 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
 const (
-	defaultName               = "chromium"
-	dpkgStatus               = "/var/lib/dpkg/status"
-	runtimeDirName           = "kiosk-client"
-	supervisorPIDFileName    = "browser-supervisor.pid"
-	supervisorScriptName     = "browser-supervisor.sh"
-	watchdogStateHealthy     = "healthy"
-	watchdogStateLimited     = "limited"
-	watchdogStateDisabled    = "disabled"
-	restartLimit             = 5
-	restartLimitWindow       = 10 * time.Minute
-	restartHistoryLimit      = 10
-	supervisorSignalReload   = syscall.SIGUSR1
-	supervisorSignalRestart  = syscall.SIGUSR2
+	defaultName            = "chromium"
+	dpkgStatus             = "/var/lib/dpkg/status"
+	runtimeDirName         = "kiosk-client"
+	supervisorPIDFileName  = "browser-supervisor.pid"
+	supervisorScriptName   = "browser-supervisor.sh"
+	watchdogStateHealthy   = "healthy"
+	watchdogStateObserving = "observing"
+	watchdogStateLimited   = "limited"
+	watchdogStateDisabled  = "disabled"
+	restartLimit           = 5
+	restartLimitWindow     = 10 * time.Minute
+	restartHistoryLimit    = 10
 )
 
 var watchdogMetrics struct {
 	sync.Mutex
 	restartCount uint64
-	lastRestart   string
-	state         string
-	history       []RestartEvent
+	lastRestart  string
+	state        string
+	history      []RestartEvent
 	restartTimes []time.Time
 }
 
@@ -139,6 +137,13 @@ func RestartHistory() []RestartEvent {
 
 // StartWatchdog starts a background browser watchdog worker.
 func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string, ...interface{})) <-chan struct{} {
+	return StartWatchdogWithController(ctx, interval, SupervisorController{Runtime: NewRuntime(defaultName)}, "restart", logf)
+}
+
+// StartWatchdogWithController observes the selected browser controller. In
+// observe mode it never restarts the browser, so an externally supervised
+// systemd kiosk.service remains the sole automatic restart authority.
+func StartWatchdogWithController(ctx context.Context, interval time.Duration, controller Controller, mode string, logf func(string, ...interface{})) <-chan struct{} {
 	done := make(chan struct{})
 
 	if interval <= 0 {
@@ -148,11 +153,23 @@ func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string
 	if logf == nil {
 		logf = log.Printf
 	}
+	if controller == nil {
+		controller = SupervisorController{Runtime: NewRuntime(defaultName)}
+	}
+	if mode == "" {
+		mode = "restart"
+	}
 
 	go func() {
 		defer close(done)
 
-		setWatchdogState(watchdogStateHealthy)
+		if mode == "observe" {
+			setWatchdogState(watchdogStateObserving)
+		} else if mode == "off" {
+			setWatchdogState(watchdogStateDisabled)
+		} else {
+			setWatchdogState(watchdogStateHealthy)
+		}
 
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -164,7 +181,11 @@ func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string
 				logf("browser watchdog stopped")
 				return
 			case <-ticker.C:
-				if IsRunning() {
+				if mode == "off" || controller.Inspect(ctx).Running {
+					continue
+				}
+				if mode == "observe" {
+					logf("browser watchdog observed browser not running")
 					continue
 				}
 
@@ -176,7 +197,7 @@ func StartWatchdog(ctx context.Context, interval time.Duration, logf func(string
 					continue
 				}
 
-				if err := Restart(); err != nil {
+				if err := controller.Restart(ctx); err != nil {
 					logf("browser watchdog restart failed: %v", err)
 					continue
 				}
@@ -377,13 +398,13 @@ func readExecutableVersion(executable string) string {
 	return strings.TrimSpace(string(output))
 }
 
-func signalSupervisor(action string, signal syscall.Signal) error {
+func signalSupervisor(action string, signal os.Signal) error {
 	pid, err := supervisorPID()
 	if err != nil {
 		return fmt.Errorf("browser %s failed: %w", action, err)
 	}
 
-	if err := syscall.Kill(pid, signal); err != nil {
+	if err := signalProcess(pid, signal); err != nil {
 		return fmt.Errorf("browser %s failed: supervisor signal failed: %w", action, err)
 	}
 

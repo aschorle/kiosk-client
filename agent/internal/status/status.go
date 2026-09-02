@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/aschorle/kiosk-client/agent/internal/browser"
@@ -95,16 +94,18 @@ type Metrics struct {
 // Provider builds status responses from static configuration and local system
 // information.
 type Provider struct {
-	config  config.Config
-	version string
+	config     config.Config
+	version    string
+	controller browser.Controller
 }
 
 // NewProvider creates a status provider for the current agent process.
-func NewProvider(cfg config.Config, version string) Provider {
-	return Provider{
-		config:  cfg,
-		version: version,
+func NewProvider(cfg config.Config, version string, controllers ...browser.Controller) Provider {
+	controller := browser.Controller(browser.SupervisorController{Runtime: browser.NewRuntime(cfg.Browser)})
+	if len(controllers) > 0 && controllers[0] != nil {
+		controller = controllers[0]
 	}
+	return Provider{config: cfg, version: version, controller: controller}
 }
 
 // SetAgentStartTime sets the timestamp used for agent uptime metrics.
@@ -152,19 +153,19 @@ func StartWatchdogCheckCounter(ctx context.Context, interval time.Duration) <-ch
 // Current returns the current kiosk-client status.
 func (p Provider) Current() Status {
 	cfg := p.currentConfig()
-	browserRuntime := browser.NewRuntime(cfg.Browser)
+	browserState := p.controller.Inspect(context.Background())
 
 	return Status{
 		Hostname:              hostname(),
 		IP:                    primaryIP(),
 		URL:                   cfg.URL,
-		Browser:               browserRuntime.Name,
+		Browser:               browserState.Name,
 		Version:               p.version,
-		BrowserRunning:        browserRuntime.IsRunning(),
-		BrowserPID:            browserRuntime.PID(),
-		BrowserVersion:        browserRuntime.Version(),
-		BrowserPath:           browserRuntime.Executable(),
-		BrowserCmdline:        browserRuntime.CommandLine(),
+		BrowserRunning:        browserState.Running,
+		BrowserPID:            browserState.PID,
+		BrowserVersion:        browserState.Version,
+		BrowserPath:           browserState.Executable,
+		BrowserCmdline:        browserState.CommandLine,
 		BrowserRestartCount:   browser.RestartCount(),
 		BrowserLastRestart:    browser.LastRestart(),
 		BrowserWatchdogState:  browser.WatchdogState(),
@@ -190,7 +191,7 @@ func (p Provider) Metrics() Metrics {
 
 	return Metrics{
 		AgentUptimeSeconds:   agentUptimeSeconds(),
-		BrowserUptimeSeconds: browserUptimeSeconds(),
+		BrowserUptimeSeconds: browserUptimeSeconds(p.controller.Inspect(context.Background()).PID),
 		WatchdogChecks:       watchdogChecks.Load(),
 		BrowserRestartCount:  browser.RestartCount(),
 		HTTPRequestsTotal:    httpRequestsTotal.Load(),
@@ -202,9 +203,7 @@ func (p Provider) Metrics() Metrics {
 
 // Health returns the summarized system health.
 func (p Provider) Health() Health {
-	cfg := p.currentConfig()
-	browserRuntime := browser.NewRuntime(cfg.Browser)
-	if !browserRuntime.IsRunning() {
+	if !p.controller.Inspect(context.Background()).Running {
 		return Health{Status: "error"}
 	}
 
@@ -212,7 +211,7 @@ func (p Provider) Health() Health {
 		return Health{Status: "degraded"}
 	}
 
-	if browser.WatchdogState() == "healthy" {
+	if browser.WatchdogState() == "healthy" || browser.WatchdogState() == "observing" {
 		return Health{Status: "healthy"}
 	}
 
@@ -298,12 +297,7 @@ func uptime() string {
 }
 
 func kernel() string {
-	var uts syscall.Utsname
-	if err := syscall.Uname(&uts); err != nil {
-		return ""
-	}
-
-	return charsToString(uts.Release[:])
+	return platformKernel()
 }
 
 func debianVersion() string {
@@ -316,12 +310,7 @@ func debianVersion() string {
 }
 
 func architecture() string {
-	var uts syscall.Utsname
-	if err := syscall.Uname(&uts); err == nil {
-		return charsToString(uts.Machine[:])
-	}
-
-	return runtime.GOARCH
+	return platformArchitecture()
 }
 
 func cpuModel() string {
@@ -413,13 +402,7 @@ func diskAvailable() uint64 {
 }
 
 func diskSpace(path string) (uint64, uint64) {
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(path, &stat); err != nil {
-		return 0, 0
-	}
-
-	blockSize := uint64(stat.Bsize)
-	return stat.Blocks * blockSize, stat.Bavail * blockSize
+	return platformDiskSpace(path)
 }
 
 func loadAverage() string {
@@ -449,8 +432,7 @@ func agentUptimeSeconds() uint64 {
 	return uint64(uptime.Seconds())
 }
 
-func browserUptimeSeconds() uint64 {
-	pid := browser.PID()
+func browserUptimeSeconds(pid int) uint64 {
 	if pid <= 0 {
 		return 0
 	}

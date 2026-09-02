@@ -34,7 +34,7 @@ type heartbeatResponse struct {
 }
 
 // Start starts no worker when central management is not configured.
-func Start(ctx context.Context, provider status.Provider, logf func(string, ...any)) <-chan struct{} {
+func Start(ctx context.Context, provider status.Provider, controller browser.Controller, logf func(string, ...any)) <-chan struct{} {
 	done := make(chan struct{})
 	cfg, err := config.Current()
 	if err != nil || cfg.ServerURL == "" {
@@ -50,7 +50,7 @@ func Start(ctx context.Context, provider status.Provider, logf func(string, ...a
 		defer close(done)
 		client := &http.Client{Timeout: 10 * time.Second}
 		for {
-			if err := heartbeat(ctx, client, provider, []ack{}, logf); err != nil && ctx.Err() == nil {
+			if err := heartbeat(ctx, client, provider, controller, []ack{}, logf); err != nil && ctx.Err() == nil {
 				logf("central management heartbeat failed: %v", err)
 			}
 			select {
@@ -63,17 +63,13 @@ func Start(ctx context.Context, provider status.Provider, logf func(string, ...a
 	return done
 }
 
-func heartbeat(ctx context.Context, client *http.Client, provider status.Provider, acks []ack, logf func(string, ...any)) error {
+func heartbeat(ctx context.Context, client *http.Client, provider status.Provider, controller browser.Controller, acks []ack, logf func(string, ...any)) error {
 	cfg, err := config.Current()
 	if err != nil {
 		return err
 	}
 	current, health := provider.Current(), provider.Health()
-	payload := map[string]any{
-		"client_id": cfg.DeviceID, "name": deviceName(cfg), "client_type": "kiosk-client",
-		"agent_version": status.AgentVersion, "browser_running": current.BrowserRunning,
-		"health": health.Status, "capabilities": []string{"restart_browser", "reboot"}, "acks": acks,
-	}
+	payload := heartbeatPayload(cfg, current, health, acks)
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -99,13 +95,13 @@ func heartbeat(ctx context.Context, client *http.Client, provider status.Provide
 	if result.Command == nil {
 		return nil
 	}
-	completed := execute(*result.Command)
+	completed := execute(ctx, *result.Command, controller, cfg)
 	// Persist the acknowledgement immediately. A reboot starts only after this
 	// acknowledgement heartbeat has completed successfully.
-	if err := heartbeat(ctx, client, provider, []ack{completed}, logf); err != nil {
+	if err := heartbeat(ctx, client, provider, controller, []ack{completed}, logf); err != nil {
 		return err
 	}
-	if result.Command.Action == "reboot" && completed.Result == "success" {
+	if result.Command.Action == "reboot" && cfg.EnableReboot && completed.Result == "success" {
 		time.AfterFunc(200*time.Millisecond, func() {
 			if err := web.RebootSystem(); err != nil {
 				logf("central reboot failed: %v", err)
@@ -115,6 +111,36 @@ func heartbeat(ctx context.Context, client *http.Client, provider status.Provide
 	return nil
 }
 
+// heartbeatPayload keeps the externally visible protocol value independent of
+// the internal profile/controller selection. Legacy appliance installations
+// therefore continue to identify themselves as kiosk-client.
+func heartbeatPayload(cfg config.Config, current status.Status, health status.Health, acks []ack) map[string]any {
+	return map[string]any{
+		"client_id": cfg.DeviceID, "name": deviceName(cfg), "client_type": protocolClientType(cfg),
+		"agent_version": status.AgentVersion, "browser_running": current.BrowserRunning,
+		"health": health.Status, "capabilities": capabilities(cfg), "acks": acks,
+	}
+}
+
+func protocolClientType(cfg config.Config) string {
+	switch cfg.ClientType {
+	case "", "appliance":
+		return "kiosk-client"
+	case "systemd":
+		return "mini-kiosk"
+	default:
+		return cfg.ClientType
+	}
+}
+
+func capabilities(cfg config.Config) []string {
+	capabilities := []string{"restart_browser"}
+	if cfg.EnableReboot {
+		capabilities = append(capabilities, "reboot")
+	}
+	return capabilities
+}
+
 func deviceName(cfg config.Config) string {
 	if strings.TrimSpace(cfg.DeviceName) != "" {
 		return cfg.DeviceName
@@ -122,16 +148,20 @@ func deviceName(cfg config.Config) string {
 	return cfg.DeviceID
 }
 
-func execute(item command) ack {
+func execute(ctx context.Context, item command, controller browser.Controller, cfg config.Config) ack {
 	result := ack{CommandID: item.ID, Result: "failed"}
 	switch item.Action {
 	case "restart_browser":
-		if err := browser.RestartService(); err != nil {
-			result.Message = err.Error()
+		if err := controller.Restart(ctx); err != nil {
+			result.Message = "browser restart failed"
 		} else {
 			result.Result, result.Message = "success", "browser restart requested"
 		}
 	case "reboot":
+		if !cfg.EnableReboot {
+			result.Message = "unsupported command"
+			break
+		}
 		// The fixed reboot is scheduled only after the acknowledgement heartbeat.
 		result.Result, result.Message = "success", "reboot requested"
 	default:

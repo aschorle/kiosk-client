@@ -1,0 +1,14 @@
+# Management-only profile for the Mini-PC. Do not commit an actual token.
+URL=http://192.168.1.191/kiosk/
+DEVICE_ID=mini-kiosk
+DEVICE_NAME=mini-kiosk
+SERVER_URL=http://192.168.1.148:8080
+AUTH_TOKEN=replace-with-a-dedicated-secret-token
+BROWSER=chromium
+CLIENT_TYPE=systemd
+BROWSER_CONTROLLER=systemd-service
+BROWSER_SERVICE=kiosk.service
+BROWSER_WATCHDOG=observe
+ENABLE_REBOOT=false
+HTTP_ADDR=127.0.0.1:18080
+CONFIG_WRITABLE=false

@@ -1,0 +1,1 @@
+aschorle ALL=(root) NOPASSWD: /usr/bin/systemctl restart kiosk.service

@@ -1,0 +1,16 @@
+[Unit]
+Description=kiosk-client management-only agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=aschorle
+Group=aschorle
+WorkingDirectory=/opt/kiosk-agent
+ExecStart=/opt/kiosk-agent/kiosk-agent --config /etc/kiosk-agent/client.conf
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

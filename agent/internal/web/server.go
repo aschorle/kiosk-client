@@ -14,8 +14,9 @@ import (
 
 // Server wraps the local kiosk-agent HTTP server.
 type Server struct {
-	addr     string
-	provider status.Provider
+	addr       string
+	provider   status.Provider
+	controller browser.Controller
 }
 
 // Route describes one registered HTTP route.
@@ -25,10 +26,13 @@ type Route struct {
 }
 
 // NewServer creates the HTTP server for the local kiosk-agent API.
-func NewServer(addr string, provider status.Provider) Server {
+func NewServer(addr string, provider status.Provider, controllers ...browser.Controller) Server {
+	controller := browser.Controller(browser.SupervisorController{Runtime: browser.NewRuntime("chromium")})
+	if len(controllers) > 0 && controllers[0] != nil {
+		controller = controllers[0]
+	}
 	return Server{
-		addr:     addr,
-		provider: provider,
+		addr: addr, provider: provider, controller: controller,
 	}
 }
 
@@ -167,6 +171,15 @@ func (s Server) handleConfigGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) handleConfigPut(w http.ResponseWriter, r *http.Request) {
+	current, err := config.Current()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !current.ConfigWritable {
+		writeError(w, http.StatusForbidden, errors.New("configuration is read-only"))
+		return
+	}
 	var cfg config.Config
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
@@ -243,7 +256,7 @@ func (s Server) handleBrowserRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := browser.RestartService(); err != nil {
+	if err := s.controller.Restart(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -257,7 +270,7 @@ func (s Server) handleBrowserReload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := browser.ReloadService(); err != nil {
+	if err := s.controller.Reload(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -271,6 +284,15 @@ func (s Server) handleSystemReboot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cfg, err := config.Current()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !cfg.EnableReboot {
+		writeError(w, http.StatusForbidden, errors.New("reboot is disabled"))
+		return
+	}
 	if err := RebootSystem(); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
