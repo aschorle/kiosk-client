@@ -9,8 +9,8 @@ Description=kiosk-client agent
 After=default.target
 
 [Service]
-WorkingDirectory=%h/kiosk-client
-ExecStart=%h/kiosk-client/kiosk-agent
+WorkingDirectory=@PROJECT_DIR@
+ExecStart=@PROJECT_DIR@/kiosk-agent
 Restart=always
 RestartSec=3
 

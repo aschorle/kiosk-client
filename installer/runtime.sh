@@ -17,6 +17,8 @@ kiosk-appliance.service
 AGENT_BINARY="$PROJECT_DIR/kiosk-agent"
 AGENT_SOURCE="./agent/cmd/kiosk-agent"
 SUDOERS_FILE="/etc/sudoers.d/kiosk-client"
+CHROMIUM_POLICY_DIR="/etc/chromium/policies/managed"
+CHROMIUM_POLICY_FILE="$CHROMIUM_POLICY_DIR/kiosk-client.json"
 
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/install-common.sh"
@@ -199,7 +201,11 @@ install_service_file() {
 		return 1
 	fi
 
-	if ! cp "$service_source" "$service_target"; then
+	# User services run from the directory where this installer is located.
+	# Keep the source units path-independent and render their one project-path
+	# placeholder at install time.
+	escaped_project_dir=$(printf '%s' "$PROJECT_DIR" | sed 's/[\\&|]/\\&/g')
+	if ! sed "s|@PROJECT_DIR@|$escaped_project_dir|g" "$service_source" > "$service_target"; then
 		log_error "$service_name konnte nicht installiert werden."
 		return 1
 	fi
@@ -215,6 +221,59 @@ install_service_file() {
 	fi
 
 	log_success "$service_name installiert: $service_target"
+}
+
+configure_runtime_config() {
+	# The agent runs as the kiosk user and persists changes directly in this file.
+	# Do not change ownership of the complete repository.
+	kiosk_user=$1
+	config_file=$PROJECT_DIR/config/client.conf
+
+	if [ ! -f "$config_file" ]; then
+		log_error "Runtime-Konfiguration fehlt: $config_file"
+		return 1
+	fi
+
+	if ! chown "$kiosk_user:$kiosk_user" "$config_file"; then
+		log_error "Besitzrechte fuer Runtime-Konfiguration konnten nicht gesetzt werden: $config_file"
+		return 1
+	fi
+
+	if ! chmod 0644 "$config_file"; then
+		log_error "Dateirechte fuer Runtime-Konfiguration konnten nicht gesetzt werden: $config_file"
+		return 1
+	fi
+
+	log_success "Runtime-Konfiguration fuer $kiosk_user schreibbar: $config_file"
+}
+
+install_chromium_policy() {
+	# Manage only this project's policy file; existing Chromium policies remain
+	# untouched and Chromium merges managed policy files from this directory.
+	if [ ! -d "$CHROMIUM_POLICY_DIR" ]; then
+		if ! mkdir -p "$CHROMIUM_POLICY_DIR"; then
+			log_error "Chromium-Policy-Verzeichnis konnte nicht erstellt werden: $CHROMIUM_POLICY_DIR"
+			return 1
+		fi
+		if ! chown root:root "$CHROMIUM_POLICY_DIR" || ! chmod 0755 "$CHROMIUM_POLICY_DIR"; then
+			log_error "Rechte fuer Chromium-Policy-Verzeichnis konnten nicht gesetzt werden: $CHROMIUM_POLICY_DIR"
+			return 1
+		fi
+	fi
+
+	policy_temp=$CHROMIUM_POLICY_FILE.tmp.$$
+	if ! printf '%s\n' '{"TranslateEnabled":false}' > "$policy_temp"; then
+		log_error "Chromium-Policy konnte nicht geschrieben werden: $policy_temp"
+		return 1
+	fi
+
+	if ! chown root:root "$policy_temp" || ! chmod 0644 "$policy_temp" || ! mv "$policy_temp" "$CHROMIUM_POLICY_FILE"; then
+		rm -f "$policy_temp"
+		log_error "Chromium-Policy konnte nicht installiert werden: $CHROMIUM_POLICY_FILE"
+		return 1
+	fi
+
+	log_success "Chromium-Translate-Policy installiert: $CHROMIUM_POLICY_FILE"
 }
 
 enable_service_without_session() {
@@ -310,6 +369,8 @@ install_appliance_runtime() {
 	user_uid=$(get_user_uid "$kiosk_user")
 
 	ensure_agent_binary "$kiosk_user"
+	configure_runtime_config "$kiosk_user"
+	install_chromium_policy
 	configure_reboot_sudoers "$kiosk_user"
 
 	for service_name in $APPLIANCE_USER_SERVICES; do

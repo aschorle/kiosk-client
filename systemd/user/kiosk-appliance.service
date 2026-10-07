@@ -9,8 +9,8 @@ Description=kiosk-client appliance runtime
 After=default.target
 
 [Service]
-WorkingDirectory=%h/kiosk-client
-ExecStart=/usr/bin/dbus-run-session -- %h/kiosk-client/scripts/start-cage.sh
+WorkingDirectory=@PROJECT_DIR@
+ExecStart=/usr/bin/dbus-run-session -- @PROJECT_DIR@/scripts/start-cage.sh
 Restart=always
 RestartSec=3
 
