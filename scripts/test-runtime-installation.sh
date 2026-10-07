@@ -21,6 +21,7 @@ test_root=$2
 source_dir=$3
 chown() { return 0; }
 . "$runtime_script"
+. "$source_dir/../installer/packages.sh"
 
 PROJECT_DIR=$test_root/project
 user_home=$test_root/home/kiosk
@@ -53,6 +54,7 @@ install_chromium_policy
 [ "$(cat "$CHROMIUM_POLICY_FILE")" = "{\"TranslateEnabled\":false}" ]
 [ "$(stat -c "%a" "$CHROMIUM_POLICY_FILE")" = "644" ]
 [ "$(cat "$CHROMIUM_POLICY_DIR/other.json")" = "{\"UnrelatedPolicy\":true}" ]
+printf "%s\n" "$APPLIANCE_PACKAGES" | grep -Fx "wlr-randr" >/dev/null
 ' "$SCRIPT_DIR/../installer/runtime-functions" "$RUNTIME_SCRIPT" "$TEST_ROOT" "$SCRIPT_DIR"
 
 printf '%s\n' 'runtime service paths, configuration permissions, and Chromium policy: ok'

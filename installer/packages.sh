@@ -11,11 +11,12 @@ set -eu
 # Minimal Appliance Edition packages.
 #
 # Keep this list limited to packages required by the runtime path:
-# systemd user service -> dbus-run-session -> Cage -> Chromium.
+# systemd user service -> dbus-run-session -> Cage -> optional wlr-randr -> Chromium.
 APPLIANCE_PACKAGES="
 ca-certificates
 chromium
 cage
+wlr-randr
 dbus
 dbus-user-session
 fonts-noto-color-emoji

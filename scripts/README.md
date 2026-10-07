@@ -5,8 +5,9 @@ Produktive Skripte:
 - `browser-supervisor.sh`
 - `start-browser.sh`
 - `start-cage.sh`
+- `start-wayland-session.sh`
 
-`start-cage.sh` startet Cage. Cage startet `browser-supervisor.sh`. Der Supervisor startet `start-browser.sh`, ueberwacht Chromium und startet es bei Reload, Neustart oder Crash innerhalb der laufenden Cage-Sitzung neu.
+`start-cage.sh` startet Cage mit `start-wayland-session.sh` als Client. Das Session-Skript versucht einen optional konfigurierten `DISPLAY_OUTPUT`/`DISPLAY_MODE`-Override erst nach Verfuegbarkeit des Wayland-Sockets und startet danach immer den `browser-supervisor.sh`. Ohne `DISPLAY_MODE` bleibt die automatische Moduswahl erhalten. Fehler beim Setzen des Modus werden protokolliert, blockieren den Kioskstart aber nicht. Der Supervisor startet `start-browser.sh`, ueberwacht Chromium und startet es bei Reload, Neustart oder Crash innerhalb der laufenden Cage-Sitzung neu.
 
 ## Linux source package
 

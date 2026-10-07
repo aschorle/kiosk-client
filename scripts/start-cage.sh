@@ -12,6 +12,7 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 CAGE_BIN=${CAGE_BIN:-cage}
 SUPERVISOR_SCRIPT=$PROJECT_DIR/scripts/browser-supervisor.sh
+WAYLAND_SESSION_SCRIPT=$PROJECT_DIR/scripts/start-wayland-session.sh
 CURSOR_THEME_NAME=${CURSOR_THEME_NAME:-kiosk-hidden}
 CURSOR_SIZE=${CURSOR_SIZE:-24}
 CURSOR_THEME_ROOT=${XDG_RUNTIME_DIR:-/tmp}/kiosk-client-cursors
@@ -93,8 +94,8 @@ start_cage() {
 		return 1
 	fi
 
-	if [ ! -x "$SUPERVISOR_SCRIPT" ]; then
-		log_error "Browser-Supervisor ist nicht ausfuehrbar: $SUPERVISOR_SCRIPT"
+	if [ ! -r "$WAYLAND_SESSION_SCRIPT" ]; then
+		log_error "Wayland-Session-Startskript ist nicht lesbar: $WAYLAND_SESSION_SCRIPT"
 		return 1
 	fi
 
@@ -107,9 +108,9 @@ start_cage() {
 
 	log_info "Working Directory: $PROJECT_DIR"
 	log_info "Starte Cage: $cage_path"
-	log_info "Starte Browser-Supervisor in Cage: $SUPERVISOR_SCRIPT"
+	log_info "Starte Wayland-Session in Cage: $WAYLAND_SESSION_SCRIPT"
 
-	exec "$cage_path" -- "$SUPERVISOR_SCRIPT"
+	exec "$cage_path" -- /bin/sh "$WAYLAND_SESSION_SCRIPT" "$SUPERVISOR_SCRIPT"
 }
 
 main() {

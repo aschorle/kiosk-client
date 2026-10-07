@@ -57,6 +57,7 @@ Installierte Pakete:
 - `ca-certificates`
 - `chromium`
 - `cage`
+- `wlr-randr`
 - `dbus`
 - `dbus-user-session`
 - `fonts-noto-color-emoji`
@@ -77,6 +78,7 @@ Wichtige Werte:
 - `AUTH_TOKEN`: Schreibschutz für lokale API-Aufrufe und Bearer-Token für die zentrale Verwaltung
 - `SERVER_URL`: optionale zentrale Server-URL; leer deaktiviert den Heartbeat
 - `DEVICE_NAME`: optionaler Anzeigename im zentralen Admin
+- `DISPLAY_OUTPUT` und `DISPLAY_MODE`: optionale Wayland-Ausgabekonfiguration. Ohne `DISPLAY_MODE` bleibt die automatische Moduswahl unverändert. Konfiguration, Hardwarebeispiele, Prüfung und Troubleshooting stehen in [docs/Appliance.md](docs/Appliance.md#optionaler-wayland-ausgabemodus).
 
 `AUTH_TOKEN` wird nicht ueber die Weboberflaeche oder JSON-Konfiguration ausgegeben.
 
@@ -143,7 +145,7 @@ unveraendert.
 
 ## Version
 
-Aktuelle Version: `0.13.6`
+Aktuelle Version: `1.0.2`
 
 ## Management-only Client (Phase 1B)
 

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.0.2
+
+- Optionale Wayland-Ausgabemodus-Konfiguration über `DISPLAY_OUTPUT` und `DISPLAY_MODE`; ohne Override bleibt die automatische DRM-Moduswahl erhalten.
+- `wlr-randr` wird als Runtime-Abhängigkeit installiert und erst nach Verfügbarkeit der Cage/Wayland-Sitzung ausgeführt; Fehler führen mit Warnung zum normalen Browserstart weiter.
+- Agent-/Dashboard-Konfigurationsupdates bewahren die lokalen Display-Werte. ROCK 4C+ mit ANMITE wurde mit Service-Neustart, ungültigem-Modus-Fallback und vollständigem Reboot abgenommen.
+
 ## 0.13.6
 
 - Repository-Audit vor Code Freeze durchgefuehrt.

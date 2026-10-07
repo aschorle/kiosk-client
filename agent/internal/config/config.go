@@ -31,6 +31,8 @@ type Config struct {
 	DeviceName        string `json:"device_name"`
 	ServerURL         string `json:"server_url"`
 	Browser           string `json:"browser"`
+	DisplayOutput     string `json:"-"`
+	DisplayMode       string `json:"-"`
 	AuthToken         string `json:"-"`
 	ClientType        string `json:"client_type"`
 	BrowserController string `json:"browser_controller"`
@@ -137,6 +139,10 @@ func Update(cfg Config) error {
 	cfg.EnableReboot = currentConfig.EnableReboot
 	cfg.HTTPAddr = currentConfig.HTTPAddr
 	cfg.ConfigWritable = currentConfig.ConfigWritable
+	// Display mode is a local appliance setting, not an API-managed value.
+	// Preserve it when the dashboard updates the other runtime settings.
+	cfg.DisplayOutput = currentConfig.DisplayOutput
+	cfg.DisplayMode = currentConfig.DisplayMode
 	normalized, err := Validate(cfg)
 	if err != nil {
 		return err
@@ -156,13 +162,15 @@ func Update(cfg Config) error {
 	}
 
 	content := fmt.Sprintf(
-		"URL=%s\nDEVICE_ID=%s\nDEVICE_NAME=%s\nSERVER_URL=%s\nBROWSER=%s\nAUTH_TOKEN=%s\nCLIENT_TYPE=%s\nBROWSER_CONTROLLER=%s\nBROWSER_SERVICE=%s\nBROWSER_WATCHDOG=%s\nENABLE_REBOOT=%t\nHTTP_ADDR=%s\nCONFIG_WRITABLE=%t\n",
+		"URL=%s\nDEVICE_ID=%s\nDEVICE_NAME=%s\nSERVER_URL=%s\nBROWSER=%s\nAUTH_TOKEN=%s\nDISPLAY_OUTPUT=%s\nDISPLAY_MODE=%s\nCLIENT_TYPE=%s\nBROWSER_CONTROLLER=%s\nBROWSER_SERVICE=%s\nBROWSER_WATCHDOG=%s\nENABLE_REBOOT=%t\nHTTP_ADDR=%s\nCONFIG_WRITABLE=%t\n",
 		normalized.URL,
 		normalized.DeviceID,
 		normalized.DeviceName,
 		normalized.ServerURL,
 		normalized.Browser,
 		normalized.AuthToken,
+		normalized.DisplayOutput,
+		normalized.DisplayMode,
 		normalized.ClientType,
 		normalized.BrowserController,
 		normalized.BrowserService,
@@ -188,6 +196,8 @@ func Validate(cfg Config) (Config, error) {
 		DeviceName:        strings.TrimSpace(cfg.DeviceName),
 		ServerURL:         strings.TrimRight(strings.TrimSpace(cfg.ServerURL), "/"),
 		Browser:           strings.ToLower(strings.TrimSpace(cfg.Browser)),
+		DisplayOutput:     strings.TrimSpace(cfg.DisplayOutput),
+		DisplayMode:       strings.TrimSpace(cfg.DisplayMode),
 		ClientType:        strings.ToLower(strings.TrimSpace(cfg.ClientType)),
 		BrowserController: strings.ToLower(strings.TrimSpace(cfg.BrowserController)),
 		BrowserService:    strings.TrimSpace(cfg.BrowserService),
@@ -311,6 +321,8 @@ func read(path string) (Config, error) {
 		DeviceName:        values["DEVICE_NAME"],
 		ServerURL:         strings.TrimRight(values["SERVER_URL"], "/"),
 		Browser:           valueOrDefaultValue(values["BROWSER"], defaultBrowser),
+		DisplayOutput:     values["DISPLAY_OUTPUT"],
+		DisplayMode:       values["DISPLAY_MODE"],
 		AuthToken:         values["AUTH_TOKEN"],
 		ClientType:        values["CLIENT_TYPE"],
 		BrowserController: values["BROWSER_CONTROLLER"],
