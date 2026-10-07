@@ -84,6 +84,17 @@ Cage/DRM behalten ihre automatische Moduswahl bei. Der Installer erzwingt
 keinen Modus anhand des Boards und ändert keine Display-Konfiguration
 automatisch.
 
+Die Hotplug-Überwachung überwacht den konfigurierten Ausgang im
+Wayland-Session-Wrapper mit einer Abfrage alle fünf Sekunden. Wird der Ausgang
+beim Ausschalten des Displays nicht mehr gemeldet, wartet der Wrapper ohne
+Fehler-Schleife. Nach Wiederkehr oder wenn wlroots einen anderen Modus aktiviert
+hat, fordert er den konfigurierten Modus erneut an. Ist der Modus vorübergehend
+nicht verfügbar, wird der Versuch mit Abstand wiederholt; Warnungen erscheinen
+nicht bei jedem Poll. Diese Überwachung läuft als Teil des vorhandenen
+Cage-Session-Clients: sie startet weder einen zusätzlichen Dienst noch Cage,
+Browser-Supervisor oder Chromium neu. Ohne `DISPLAY_MODE` wird weder gepollt
+noch `wlr-randr` aufgerufen.
+
 Raspberry-Installationen ohne Override bleiben unverändert bei automatischer
 Moduswahl. Beim getesteten Raspberry/ANMITE-Aufbau wird weiterhin nativ
 1920x1200 gewählt.
@@ -101,6 +112,20 @@ Hardware-Fallbacktest mit einem ungültigen Modus erzeugte die erwartete
 Warnung; Cage, Browser-Supervisor und Chromium liefen weiter. Nach dem Reboot
 waren `kiosk-agent.service` und `kiosk-appliance.service` aktiv und der
 konfigurierte Modus automatisch wieder gesetzt.
+
+### ROCK 4C+ Hardware-Abnahme für HDMI-Hotplug
+
+Die Abnahme des v1.0.3-Hotplug-Fixes auf dem ROCK 4C+ mit dem ANMITE-Display
+war erfolgreich:
+
+- Beim normalen Start war `1680x1050 px, 59.882999 Hz (current)` aktiv.
+- Nach Ausschalten und Wiederherstellen der Display-Stromversorgung wurde
+  1680×1050 automatisch erneut gesetzt.
+- Cage (PID 4410), Browser-Supervisor (PID 4476) und Chromium (PID 4482)
+  behielten während des Hotplug-Vorgangs ihre PIDs; beide User-Services blieben
+  aktiv.
+- Auch nach dem abschließenden Reboot waren `kiosk-agent.service` und
+  `kiosk-appliance.service` aktiv und 1680×1050 wieder der aktuelle Modus.
 
 ### Fehlersuche bei nicht unterstützten Modi
 

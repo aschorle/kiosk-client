@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.0.3
+
+- Nach HDMI-Hotplug überwacht der laufende Cage/Wayland-Session-Wrapper den konfigurierten Ausgang und wendet `DISPLAY_MODE` nach Wiederkehr oder automatischem wlroots-Moduswechsel erneut an, ohne Cage oder Chromium neu zu starten.
+- Fehlender Ausgang wird als normaler Hotplug-Zustand behandelt; nicht verfügbare Modi werden mit gedrosselten Wiederholungen versucht und blockieren den Kioskstart nicht. Ohne Display-Override bleibt die automatische Auswahl unverändert.
+- ROCK 4C+ Hardware-Abnahme erfolgreich: 1680×1050 nach normalem Start, Display-Hotplug und Reboot aktiv; Services sowie Cage-, Supervisor- und Chromium-PIDs blieben beim Hotplug unverändert.
+
 ## 1.0.2
 
 - Optionale Wayland-Ausgabemodus-Konfiguration über `DISPLAY_OUTPUT` und `DISPLAY_MODE`; ohne Override bleibt die automatische DRM-Moduswahl erhalten.

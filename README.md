@@ -78,7 +78,7 @@ Wichtige Werte:
 - `AUTH_TOKEN`: Schreibschutz für lokale API-Aufrufe und Bearer-Token für die zentrale Verwaltung
 - `SERVER_URL`: optionale zentrale Server-URL; leer deaktiviert den Heartbeat
 - `DEVICE_NAME`: optionaler Anzeigename im zentralen Admin
-- `DISPLAY_OUTPUT` und `DISPLAY_MODE`: optionale Wayland-Ausgabekonfiguration. Ohne `DISPLAY_MODE` bleibt die automatische Moduswahl unverändert. Konfiguration, Hardwarebeispiele, Prüfung und Troubleshooting stehen in [docs/Appliance.md](docs/Appliance.md#optionaler-wayland-ausgabemodus).
+- `DISPLAY_OUTPUT` und `DISPLAY_MODE`: optionale Wayland-Ausgabekonfiguration. Ohne `DISPLAY_MODE` bleibt die automatische Moduswahl unverändert. Die Session-Überwachung wendet den Modus nach HDMI-Hotplug erneut an, ohne Cage oder Browser neu zu starten. Konfiguration, Hardwarebeispiele, Prüfung, Hotplug-Abnahme und Troubleshooting stehen in [docs/Appliance.md](docs/Appliance.md#optionaler-wayland-ausgabemodus).
 
 `AUTH_TOKEN` wird nicht ueber die Weboberflaeche oder JSON-Konfiguration ausgegeben.
 
@@ -145,7 +145,7 @@ unveraendert.
 
 ## Version
 
-Aktuelle Version: `1.0.2`
+Aktuelle Version: `1.0.3`
 
 ## Management-only Client (Phase 1B)
 
